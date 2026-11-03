@@ -43,6 +43,31 @@ func TestDecodeSkipsUnknownIEs(t *testing.T) {
 	}
 }
 
+// Unknown IEIs in 0x70-0x7F are type 6 (TLV-E) and carry a two-octet length.
+func TestDecodeSkipsUnknownTLVEIEs(t *testing.T) {
+	tests := map[string][]byte{
+		"0x7f one octet value":   {0x7f, 0x00, 0x01, 0xaa},
+		"0x70 zero length":       {0x70, 0x00, 0x00},
+		"0x7d two octet length":  append([]byte{0x7d, 0x01, 0x02}, bytes.Repeat([]byte{0x55}, 258)...),
+		"0x7f length high octet": append([]byte{0x7f, 0x00, 0x80}, bytes.Repeat([]byte{0x01}, 128)...),
+	}
+	for name, unknown := range tests {
+		t.Run(name, func(t *testing.T) {
+			data := append(append(authRespHeader(), unknown...), authRespParam()...)
+			msg := nasMessage.NewAuthenticationResponse(nasMessage.AuthenticationResponseAuthenticationResponseParameterType)
+			if err := msg.DecodeAuthenticationResponse(&data); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if msg.AuthenticationResponseParameter == nil {
+				t.Fatal("IE following the unknown TLV-E IE was not decoded")
+			}
+			if got := msg.AuthenticationResponseParameter.GetLen(); got != 16 {
+				t.Errorf("Len = %d, want 16", got)
+			}
+		})
+	}
+}
+
 func TestDecodeReturnsErrorOnMalformedMessage(t *testing.T) {
 	tests := map[string][]byte{
 		"truncated header":         authRespHeader()[:2],
@@ -50,6 +75,8 @@ func TestDecodeReturnsErrorOnMalformedMessage(t *testing.T) {
 		"missing length octet":     append(authRespHeader(), 0x2D),
 		"unknown IE overruns data": append(authRespHeader(), 0x01, 0x05, 0xaa),
 		"known IE length too big":  append(authRespHeader(), 0x2D, 0x11, 0x01),
+		"TLV-E missing length":     append(authRespHeader(), 0x7f, 0x00),
+		"TLV-E overruns data":      append(authRespHeader(), 0x7f, 0x00, 0x05, 0xaa),
 	}
 	for name, data := range tests {
 		t.Run(name, func(t *testing.T) {

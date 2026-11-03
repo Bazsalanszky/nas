@@ -85,3 +85,24 @@ func TestNasTypeNewSecurityProtected5GSNASMessageMessage(t *testing.T) {
 		}
 	}
 }
+
+// The octets after the security header are the protected plain NAS message, not
+// optional IEs, so decoding must accept them.
+func TestDecodeSecurityProtected5GSNASMessageWithPayload(t *testing.T) {
+	data := []byte{
+		nasMessage.Epd5GSMobilityManagementMessage, 0x01, // EPD, security header type
+		0x01, 0x02, 0x03, 0x04, // MAC
+		0x05,             // sequence number
+		0x7e, 0x00, 0x43, // plain Registration Complete
+	}
+	msg := nasMessage.NewSecurityProtected5GSNASMessage(0)
+	if err := msg.DecodeSecurityProtected5GSNASMessage(&data); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if msg.SequenceNumber.Octet != 0x05 {
+		t.Errorf("sequence number = %d, want 5", msg.SequenceNumber.Octet)
+	}
+	if msg.MessageAuthenticationCode.Octet != [4]uint8{0x01, 0x02, 0x03, 0x04} {
+		t.Errorf("MAC = %x, want 01020304", msg.MessageAuthenticationCode.Octet)
+	}
+}

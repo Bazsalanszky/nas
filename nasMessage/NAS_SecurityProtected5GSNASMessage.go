@@ -60,23 +60,8 @@ func (a *SecurityProtected5GSNASMessage) DecodeSecurityProtected5GSNASMessage(by
 	if err := binary.Read(buffer, binary.BigEndian, &a.Plain5GSNASMessage); err != nil {
 		return err
 	}
-	for buffer.Len() > 0 {
-		var ieiN uint8
-		var tmpIeiN uint8
-		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return err
-		}
-		if ieiN >= 0x80 {
-			tmpIeiN = (ieiN & 0xf0) >> 4
-		} else {
-			tmpIeiN = ieiN
-		}
-		switch tmpIeiN {
-		default:
-			if err := skipUnknownIE(buffer, ieiN); err != nil {
-				return err
-			}
-		}
-	}
+	// The octets following the header are the (possibly ciphered) plain 5GS NAS message, not
+	// optional information elements, so they must not be parsed here. Plain5GSNASMessage is an
+	// empty struct, so the payload is not retained by this type.
 	return nil
 }
