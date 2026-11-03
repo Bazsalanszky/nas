@@ -68,7 +68,9 @@ func TestNasTypeNewNotificationMessage(t *testing.T) {
 		if _, err := buff.Read(data); err != nil {
 			t.Fatal(err)
 		}
-		b.DecodeNotification(&data)
+		if err := b.DecodeNotification(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln(data)
 		logger.NasMsgLog.Debugln("Decode: ", b)
 

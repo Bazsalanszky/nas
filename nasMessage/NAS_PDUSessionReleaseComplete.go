@@ -65,25 +65,25 @@ func (a *PDUSessionReleaseComplete) EncodePDUSessionReleaseComplete(buffer *byte
 	}
 }
 
-func (a *PDUSessionReleaseComplete) DecodePDUSessionReleaseComplete(byteArray *[]byte) {
+func (a *PDUSessionReleaseComplete) DecodePDUSessionReleaseComplete(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionID.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PTI.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSESSIONRELEASECOMPLETEMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -94,18 +94,22 @@ func (a *PDUSessionReleaseComplete) DecodePDUSessionReleaseComplete(byteArray *[
 		case PDUSessionReleaseCompleteCause5GSMType:
 			a.Cause5GSM = nasType.NewCause5GSM(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Cause5GSM.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionReleaseCompleteExtendedProtocolConfigurationOptionsType:
 			a.ExtendedProtocolConfigurationOptions = nasType.NewExtendedProtocolConfigurationOptions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Len); err != nil {
-				return
+				return err
 			}
 			a.SetLen(a.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.Buffer[:a.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

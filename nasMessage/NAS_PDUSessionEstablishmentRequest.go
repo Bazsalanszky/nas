@@ -8,6 +8,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/logger"
 	"github.com/omec-project/nas/v2/nasType"
@@ -118,28 +119,28 @@ func (a *PDUSessionEstablishmentRequest) EncodePDUSessionEstablishmentRequest(bu
 	}
 }
 
-func (a *PDUSessionEstablishmentRequest) DecodePDUSessionEstablishmentRequest(byteArray *[]byte) {
+func (a *PDUSessionEstablishmentRequest) DecodePDUSessionEstablishmentRequest(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionID.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PTI.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSESSIONESTABLISHMENTREQUESTMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.IntegrityProtectionMaximumDataRate.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -156,20 +157,20 @@ func (a *PDUSessionEstablishmentRequest) DecodePDUSessionEstablishmentRequest(by
 		case PDUSessionEstablishmentRequestCapability5GSMType:
 			a.Capability5GSM = nasType.NewCapability5GSM(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Capability5GSM.Len); err != nil {
-				return
+				return err
 			}
 			a.Capability5GSM.SetLen(a.Capability5GSM.GetLen())
 			if a.Capability5GSM.GetLen() > uint8(len(a.Capability5GSM.Octet)) {
 				a.Capability5GSM = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: Capability5GSM length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.Capability5GSM.Octet[:a.Capability5GSM.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentRequestMaximumNumberOfSupportedPacketFiltersType:
 			a.MaximumNumberOfSupportedPacketFilters = nasType.NewMaximumNumberOfSupportedPacketFilters(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.MaximumNumberOfSupportedPacketFilters.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentRequestAlwaysonPDUSessionRequestedType:
 			a.AlwaysonPDUSessionRequested = nasType.NewAlwaysonPDUSessionRequested(ieiN)
@@ -177,22 +178,26 @@ func (a *PDUSessionEstablishmentRequest) DecodePDUSessionEstablishmentRequest(by
 		case PDUSessionEstablishmentRequestSMPDUDNRequestContainerType:
 			a.SMPDUDNRequestContainer = nasType.NewSMPDUDNRequestContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.SMPDUDNRequestContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.SMPDUDNRequestContainer.SetLen(a.SMPDUDNRequestContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.SMPDUDNRequestContainer.Buffer[:a.SMPDUDNRequestContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentRequestExtendedProtocolConfigurationOptionsType:
 			a.ExtendedProtocolConfigurationOptions = nasType.NewExtendedProtocolConfigurationOptions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolConfigurationOptions.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedProtocolConfigurationOptions.SetLen(a.ExtendedProtocolConfigurationOptions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedProtocolConfigurationOptions.Buffer[:a.ExtendedProtocolConfigurationOptions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

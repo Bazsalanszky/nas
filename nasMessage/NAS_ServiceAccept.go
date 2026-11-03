@@ -142,22 +142,22 @@ func (a *ServiceAccept) EncodeServiceAccept(buffer *bytes.Buffer) {
 	}
 }
 
-func (a *ServiceAccept) DecodeServiceAccept(byteArray *[]byte) {
+func (a *ServiceAccept) DecodeServiceAccept(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.ServiceAcceptMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -168,77 +168,81 @@ func (a *ServiceAccept) DecodeServiceAccept(byteArray *[]byte) {
 		case ServiceAcceptPDUSessionStatusType:
 			a.PDUSessionStatus = nasType.NewPDUSessionStatus(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionStatus.Len); err != nil {
-				return
+				return err
 			}
 			a.PDUSessionStatus.SetLen(a.PDUSessionStatus.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PDUSessionStatus.Buffer[:a.PDUSessionStatus.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ServiceAcceptPDUSessionReactivationResultType:
 			a.PDUSessionReactivationResult = nasType.NewPDUSessionReactivationResult(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionReactivationResult.Len); err != nil {
-				return
+				return err
 			}
 			a.PDUSessionReactivationResult.SetLen(a.PDUSessionReactivationResult.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PDUSessionReactivationResult.Buffer[:a.PDUSessionReactivationResult.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ServiceAcceptPDUSessionReactivationResultErrorCauseType:
 			a.PDUSessionReactivationResultErrorCause = nasType.NewPDUSessionReactivationResultErrorCause(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionReactivationResultErrorCause.Len); err != nil {
-				return
+				return err
 			}
 			a.PDUSessionReactivationResultErrorCause.SetLen(a.PDUSessionReactivationResultErrorCause.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PDUSessionReactivationResultErrorCause.Buffer[:a.PDUSessionReactivationResultErrorCause.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ServiceAcceptEAPMessageType:
 			a.EAPMessage = nasType.NewEAPMessage(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-				return
+				return err
 			}
 			a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EAPMessage.Buffer[:a.EAPMessage.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ServiceAcceptT3448ValueType:
 			a.T3448Value = nasType.NewT3448Value(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3448Value.Len); err != nil {
-				return
+				return err
 			}
 			a.T3448Value.SetLen(a.T3448Value.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3448Value.Octet); err != nil {
-				return
+				return err
 			}
 		case ServiceAcceptFiveGSAdditionalRequestResultType:
 			a.FiveGSAdditionalRequestResult = nasType.NewFiveGSAdditionalRequestResult(ieiN)
 			var l uint8
 			if err := binary.Read(buffer, binary.BigEndian, &l); err != nil {
-				return
+				return err
 			}
 			a.FiveGSAdditionalRequestResult.SetLen(uint16(l))
 			if err := binary.Read(buffer, binary.BigEndian, a.FiveGSAdditionalRequestResult.Buffer[:l]); err != nil {
-				return
+				return err
 			}
 		case ServiceAcceptForbiddenTAIRoamingType:
 			a.ForbiddenTAIRoaming = nasType.NewTAIList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ForbiddenTAIRoaming.Len); err != nil {
-				return
+				return err
 			}
 			a.ForbiddenTAIRoaming.SetLen(a.ForbiddenTAIRoaming.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ForbiddenTAIRoaming.Buffer[:a.ForbiddenTAIRoaming.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ServiceAcceptForbiddenTAIRegionalProvisionType:
 			a.ForbiddenTAIRegionalProvision = nasType.NewTAIList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ForbiddenTAIRegionalProvision.Len); err != nil {
-				return
+				return err
 			}
 			a.ForbiddenTAIRegionalProvision.SetLen(a.ForbiddenTAIRegionalProvision.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ForbiddenTAIRegionalProvision.Buffer[:a.ForbiddenTAIRegionalProvision.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

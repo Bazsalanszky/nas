@@ -45,25 +45,26 @@ func (a *RelayAuthenticationRequest) EncodeRelayAuthenticationRequest(buffer *by
 	}
 }
 
-func (a *RelayAuthenticationRequest) DecodeRelayAuthenticationRequest(byteArray *[]byte) {
+func (a *RelayAuthenticationRequest) DecodeRelayAuthenticationRequest(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.RELAYAUTHENTICATIONREQUESTMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.ProSeRelayTransactionIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.Len); err != nil {
-		return
+		return err
 	}
 	a.SetLen(a.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.Buffer); err != nil {
-		return
+		return err
 	}
+	return nil
 }

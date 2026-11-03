@@ -68,7 +68,9 @@ func TestNasTypeNewIdentityRequestMessage(t *testing.T) {
 		if _, err := buff.Read(data); err != nil {
 			t.Fatal(err)
 		}
-		b.DecodeIdentityRequest(&data)
+		if err := b.DecodeIdentityRequest(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln(data)
 		logger.NasMsgLog.Debugln("Dncode: ", b)
 

@@ -74,7 +74,9 @@ func TestNasTypeNewRegistrationCompleteMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeRegistrationComplete(&data)
+		if err := b.DecodeRegistrationComplete(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {

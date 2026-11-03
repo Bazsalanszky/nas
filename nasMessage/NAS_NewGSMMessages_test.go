@@ -50,7 +50,9 @@ func TestServiceLevelAuthenticationCommandEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeServiceLevelAuthenticationCommand(&data)
+	if err := b.DecodeServiceLevelAuthenticationCommand(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -94,7 +96,9 @@ func TestServiceLevelAuthenticationCompleteEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeServiceLevelAuthenticationComplete(&data)
+	if err := b.DecodeServiceLevelAuthenticationComplete(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -134,7 +138,9 @@ func TestRemoteUEReportEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRemoteUEReport(&data)
+	if err := b.DecodeRemoteUEReport(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -177,7 +183,9 @@ func TestRemoteUEReportEncodeDecodeWithOptionalIEs(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRemoteUEReport(&data)
+	if err := b.DecodeRemoteUEReport(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -217,7 +225,9 @@ func TestRemoteUEReportResponseEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRemoteUEReportResponse(&data)
+	if err := b.DecodeRemoteUEReportResponse(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {

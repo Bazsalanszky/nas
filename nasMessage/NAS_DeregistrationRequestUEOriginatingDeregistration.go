@@ -74,32 +74,32 @@ func (a *DeregistrationRequestUEOriginatingDeregistration) EncodeDeregistrationR
 	}
 }
 
-func (a *DeregistrationRequestUEOriginatingDeregistration) DecodeDeregistrationRequestUEOriginatingDeregistration(byteArray *[]byte) {
+func (a *DeregistrationRequestUEOriginatingDeregistration) DecodeDeregistrationRequestUEOriginatingDeregistration(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.DeregistrationRequestMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.NgksiAndDeregistrationType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.MobileIdentity5GS.Len); err != nil {
-		return
+		return err
 	}
 	a.MobileIdentity5GS.SetLen(a.MobileIdentity5GS.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.MobileIdentity5GS.Buffer); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -110,22 +110,26 @@ func (a *DeregistrationRequestUEOriginatingDeregistration) DecodeDeregistrationR
 		case DeregistrationRequestUEOriginatingDeregistrationUnavailabilityPeriodType:
 			a.LowerBoundTimerValue = nasType.NewLowerBoundTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.LowerBoundTimerValue.Len); err != nil {
-				return
+				return err
 			}
 			a.LowerBoundTimerValue.SetLen(a.LowerBoundTimerValue.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.LowerBoundTimerValue.Octet); err != nil {
-				return
+				return err
 			}
 		case DeregistrationRequestUEOriginatingDeregistrationNASMessageContainerType:
 			a.NASMessageContainer = nasType.NewNASMessageContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NASMessageContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.NASMessageContainer.SetLen(a.NASMessageContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.NASMessageContainer.Buffer); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

@@ -210,25 +210,25 @@ func (a *RegistrationReject) EncodeRegistrationReject(buffer *bytes.Buffer) {
 	}
 }
 
-func (a *RegistrationReject) DecodeRegistrationReject(byteArray *[]byte) {
+func (a *RegistrationReject) DecodeRegistrationReject(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.RegistrationRejectMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.Cause5GMM.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -239,123 +239,127 @@ func (a *RegistrationReject) DecodeRegistrationReject(byteArray *[]byte) {
 		case RegistrationRejectT3346ValueType:
 			a.T3346Value = nasType.NewT3346Value(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3346Value.Len); err != nil {
-				return
+				return err
 			}
 			a.T3346Value.SetLen(a.T3346Value.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3346Value.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectT3502ValueType:
 			a.T3502Value = nasType.NewT3502Value(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3502Value.Len); err != nil {
-				return
+				return err
 			}
 			a.T3502Value.SetLen(a.T3502Value.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3502Value.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectEAPMessageType:
 			a.EAPMessage = nasType.NewEAPMessage(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-				return
+				return err
 			}
 			a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EAPMessage.Buffer[:a.EAPMessage.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectRejectedNSSAIType:
 			a.RejectedNSSAI = nasType.NewRejectedNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RejectedNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.RejectedNSSAI.SetLen(a.RejectedNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.RejectedNSSAI.Buffer[:a.RejectedNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectCAGInformationListType:
 			a.CAGInformationList = nasType.NewCAGInformationList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.CAGInformationList.Len); err != nil {
-				return
+				return err
 			}
 			a.CAGInformationList.SetLen(a.CAGInformationList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.CAGInformationList.Buffer[:a.CAGInformationList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectExtendedRejectedNSSAIType:
 			a.ExtendedRejectedNSSAI = nasType.NewExtendedRejectedNSSAI(ieiN)
 			var l uint8
 			if err := binary.Read(buffer, binary.BigEndian, &l); err != nil {
-				return
+				return err
 			}
 			a.ExtendedRejectedNSSAI.SetLen(uint16(l))
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedRejectedNSSAI.Buffer[:l]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectDisasterReturnWaitRangeType:
 			a.DisasterReturnWaitRange = nasType.NewRegistrationWaitRange(ieiN)
 			var l uint8
 			if err := binary.Read(buffer, binary.BigEndian, &l); err != nil {
-				return
+				return err
 			}
 			a.DisasterReturnWaitRange.SetLen(uint16(l))
 			if err := binary.Read(buffer, binary.BigEndian, a.DisasterReturnWaitRange.Buffer[:l]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectExtendedCAGInformationListType:
 			a.ExtendedCAGInformationList = nasType.NewExtendedCAGInformationList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedCAGInformationList.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedCAGInformationList.SetLen(a.ExtendedCAGInformationList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedCAGInformationList.Buffer[:a.ExtendedCAGInformationList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectLowerBoundTimerValueType:
 			a.LowerBoundTimerValue = nasType.NewLowerBoundTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.LowerBoundTimerValue.Len); err != nil {
-				return
+				return err
 			}
 			a.LowerBoundTimerValue.SetLen(a.LowerBoundTimerValue.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.LowerBoundTimerValue.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectForbiddenTAIRoamingType:
 			a.ForbiddenTAIRoaming = nasType.NewTAIList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ForbiddenTAIRoaming.Len); err != nil {
-				return
+				return err
 			}
 			a.ForbiddenTAIRoaming.SetLen(a.ForbiddenTAIRoaming.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ForbiddenTAIRoaming.Buffer[:a.ForbiddenTAIRoaming.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectForbiddenTAIRegionalProvisionType:
 			a.ForbiddenTAIRegionalProvision = nasType.NewTAIList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ForbiddenTAIRegionalProvision.Len); err != nil {
-				return
+				return err
 			}
 			a.ForbiddenTAIRegionalProvision.SetLen(a.ForbiddenTAIRegionalProvision.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ForbiddenTAIRegionalProvision.Buffer[:a.ForbiddenTAIRegionalProvision.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectN3IWFIdentifierType:
 			a.N3IWFIdentifier = nasType.NewN3IWFIdentifier(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.N3IWFIdentifier.Len); err != nil {
-				return
+				return err
 			}
 			a.N3IWFIdentifier.SetLen(a.N3IWFIdentifier.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.N3IWFIdentifier.Buffer[:a.N3IWFIdentifier.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationRejectTNANInformationType:
 			a.TNANInformation = nasType.NewTNANInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.TNANInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.TNANInformation.SetLen(a.TNANInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.TNANInformation.Buffer[:a.TNANInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

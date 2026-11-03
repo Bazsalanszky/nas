@@ -7,6 +7,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -161,32 +162,32 @@ func (a *ULNASTransport) EncodeULNASTransport(buffer *bytes.Buffer) {
 	}
 }
 
-func (a *ULNASTransport) DecodeULNASTransport(byteArray *[]byte) {
+func (a *ULNASTransport) DecodeULNASTransport(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.ULNASTRANSPORTMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndPayloadContainerType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PayloadContainer.Len); err != nil {
-		return
+		return err
 	}
 	a.PayloadContainer.SetLen(a.PayloadContainer.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.PayloadContainer.Buffer); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -197,12 +198,12 @@ func (a *ULNASTransport) DecodeULNASTransport(byteArray *[]byte) {
 		case ULNASTransportPduSessionID2ValueType:
 			a.PduSessionID2Value = nasType.NewPduSessionID2Value(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PduSessionID2Value.Octet); err != nil {
-				return
+				return err
 			}
 		case ULNASTransportOldPDUSessionIDType:
 			a.OldPDUSessionID = nasType.NewOldPDUSessionID(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.OldPDUSessionID.Octet); err != nil {
-				return
+				return err
 			}
 		case ULNASTransportRequestTypeType:
 			a.RequestType = nasType.NewRequestType(ieiN)
@@ -210,33 +211,33 @@ func (a *ULNASTransport) DecodeULNASTransport(byteArray *[]byte) {
 		case ULNASTransportSNSSAIType:
 			a.SNSSAI = nasType.NewSNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.SNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.SNSSAI.SetLen(a.SNSSAI.GetLen())
 			if a.SNSSAI.GetLen() > uint8(len(a.SNSSAI.Octet)) {
 				a.SNSSAI = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: SNSSAI length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.SNSSAI.Octet[:a.SNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ULNASTransportDNNType:
 			a.DNN = nasType.NewDNN(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.DNN.Len); err != nil {
-				return
+				return err
 			}
 			a.DNN.SetLen(a.DNN.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.DNN.Buffer[:a.DNN.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ULNASTransportAdditionalInformationType:
 			a.AdditionalInformation = nasType.NewAdditionalInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AdditionalInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.AdditionalInformation.SetLen(a.AdditionalInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.AdditionalInformation.Buffer[:a.AdditionalInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ULNASTransportMAPDUSessionInformationType:
 			a.MAPDUSessionInformation = nasType.NewMAPDUSessionInformation(ieiN)
@@ -247,29 +248,33 @@ func (a *ULNASTransport) DecodeULNASTransport(byteArray *[]byte) {
 		case ULNASTransportNon3GPPAccessPathSwitchingIndicationType:
 			a.Non3GPPAccessPathSwitchingIndication = nasType.NewNon3GPPAccessPathSwitchingIndication(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Non3GPPAccessPathSwitchingIndication.Len); err != nil {
-				return
+				return err
 			}
 			a.Non3GPPAccessPathSwitchingIndication.SetLen(a.Non3GPPAccessPathSwitchingIndication.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.Non3GPPAccessPathSwitchingIndication.Octet); err != nil {
-				return
+				return err
 			}
 		case ULNASTransportAlternativeSNSSAIType:
 			a.AlternativeSNSSAI = nasType.NewSNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AlternativeSNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.AlternativeSNSSAI.SetLen(a.AlternativeSNSSAI.GetLen())
 			if a.AlternativeSNSSAI.GetLen() > uint8(len(a.AlternativeSNSSAI.Octet)) {
 				a.AlternativeSNSSAI = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: AlternativeSNSSAI length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.AlternativeSNSSAI.Octet[:a.AlternativeSNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ULNASTransportPayloadContainerInformationType:
 			a.PayloadContainerInformation = nasType.NewPayloadContainerInformation(ieiN)
 			a.PayloadContainerInformation.Octet = ieiN
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

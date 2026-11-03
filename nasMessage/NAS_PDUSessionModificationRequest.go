@@ -8,6 +8,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -144,25 +145,25 @@ func (a *PDUSessionModificationRequest) EncodePDUSessionModificationRequest(buff
 	}
 }
 
-func (a *PDUSessionModificationRequest) DecodePDUSessionModificationRequest(byteArray *[]byte) {
+func (a *PDUSessionModificationRequest) DecodePDUSessionModificationRequest(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionID.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PTI.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSESSIONMODIFICATIONREQUESTMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -173,25 +174,25 @@ func (a *PDUSessionModificationRequest) DecodePDUSessionModificationRequest(byte
 		case PDUSessionModificationRequestCapability5GSMType:
 			a.Capability5GSM = nasType.NewCapability5GSM(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Capability5GSM.Len); err != nil {
-				return
+				return err
 			}
 			a.Capability5GSM.SetLen(a.Capability5GSM.GetLen())
 			if a.Capability5GSM.GetLen() > uint8(len(a.Capability5GSM.Octet)) {
 				a.Capability5GSM = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: Capability5GSM length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.Capability5GSM.Octet[:a.Capability5GSM.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRequestCause5GSMType:
 			a.Cause5GSM = nasType.NewCause5GSM(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Cause5GSM.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRequestMaximumNumberOfSupportedPacketFiltersType:
 			a.MaximumNumberOfSupportedPacketFilters = nasType.NewMaximumNumberOfSupportedPacketFilters(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.MaximumNumberOfSupportedPacketFilters.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRequestAlwaysonPDUSessionRequestedType:
 			a.AlwaysonPDUSessionRequested = nasType.NewAlwaysonPDUSessionRequested(ieiN)
@@ -199,45 +200,49 @@ func (a *PDUSessionModificationRequest) DecodePDUSessionModificationRequest(byte
 		case PDUSessionModificationRequestIntegrityProtectionMaximumDataRateType:
 			a.IntegrityProtectionMaximumDataRate = nasType.NewIntegrityProtectionMaximumDataRate(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.IntegrityProtectionMaximumDataRate.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRequestRequestedQosRulesType:
 			a.RequestedQosRules = nasType.NewRequestedQosRules(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RequestedQosRules.Len); err != nil {
-				return
+				return err
 			}
 			a.RequestedQosRules.SetLen(a.RequestedQosRules.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.RequestedQosRules.Buffer[:a.RequestedQosRules.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRequestRequestedQosFlowDescriptionsType:
 			a.RequestedQosFlowDescriptions = nasType.NewRequestedQosFlowDescriptions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RequestedQosFlowDescriptions.Len); err != nil {
-				return
+				return err
 			}
 			a.RequestedQosFlowDescriptions.SetLen(a.RequestedQosFlowDescriptions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.RequestedQosFlowDescriptions.Buffer[:a.RequestedQosFlowDescriptions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRequestMappedEPSBearerContextsType:
 			a.MappedEPSBearerContexts = nasType.NewMappedEPSBearerContexts(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.MappedEPSBearerContexts.Len); err != nil {
-				return
+				return err
 			}
 			a.MappedEPSBearerContexts.SetLen(a.MappedEPSBearerContexts.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.MappedEPSBearerContexts.Buffer[:a.MappedEPSBearerContexts.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRequestExtendedProtocolConfigurationOptionsType:
 			a.ExtendedProtocolConfigurationOptions = nasType.NewExtendedProtocolConfigurationOptions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolConfigurationOptions.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedProtocolConfigurationOptions.SetLen(a.ExtendedProtocolConfigurationOptions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedProtocolConfigurationOptions.Buffer[:a.ExtendedProtocolConfigurationOptions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

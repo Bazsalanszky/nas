@@ -72,7 +72,9 @@ func TestNasTypeNewIdentityResponseMessage(t *testing.T) {
 		if _, err := buff.Read(data); err != nil {
 			t.Fatal(err)
 		}
-		b.DecodeIdentityResponse(&data)
+		if err := b.DecodeIdentityResponse(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln(data)
 		logger.NasMsgLog.Debugln("Decode: ", b)
 

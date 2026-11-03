@@ -284,7 +284,9 @@ func TestNasTypeNewRegistrationAcceptMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeRegistrationAccept(&data)
+		if err := b.DecodeRegistrationAccept(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {
@@ -340,7 +342,9 @@ func TestRegistrationAcceptNewIEsEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRegistrationAccept(&data)
+	if err := b.DecodeRegistrationAccept(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("Decode: ", b)
 
 	if reflect.DeepEqual(a, b) != true {

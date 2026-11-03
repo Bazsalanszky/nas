@@ -8,6 +8,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -131,28 +132,28 @@ func (a *PDUSessionReleaseCommand) EncodePDUSessionReleaseCommand(buffer *bytes.
 	}
 }
 
-func (a *PDUSessionReleaseCommand) DecodePDUSessionReleaseCommand(byteArray *[]byte) {
+func (a *PDUSessionReleaseCommand) DecodePDUSessionReleaseCommand(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionID.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PTI.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSESSIONRELEASECOMMANDMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.Cause5GSM.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -163,38 +164,38 @@ func (a *PDUSessionReleaseCommand) DecodePDUSessionReleaseCommand(byteArray *[]b
 		case PDUSessionReleaseCommandBackoffTimerValueType:
 			a.BackoffTimerValue = nasType.NewBackoffTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.BackoffTimerValue.Len); err != nil {
-				return
+				return err
 			}
 			a.BackoffTimerValue.SetLen(a.BackoffTimerValue.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.BackoffTimerValue.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionReleaseCommandEAPMessageType:
 			a.EAPMessage = nasType.NewEAPMessage(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-				return
+				return err
 			}
 			a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EAPMessage.Buffer[:a.EAPMessage.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionReleaseCommandExtendedProtocolConfigurationOptionsType:
 			a.ExtendedProtocolConfigurationOptions = nasType.NewExtendedProtocolConfigurationOptions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolConfigurationOptions.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedProtocolConfigurationOptions.SetLen(a.ExtendedProtocolConfigurationOptions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedProtocolConfigurationOptions.Buffer[:a.ExtendedProtocolConfigurationOptions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionReleaseCommandFivegsmcongestionreattemptindicatorType:
 			a.Fivegsmcongestionreattemptindicator = nasType.NewFivegsmcongestionreattemptindicator(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Fivegsmcongestionreattemptindicator.Len); err != nil {
-				return
+				return err
 			}
 			a.Fivegsmcongestionreattemptindicator.SetLen(a.Fivegsmcongestionreattemptindicator.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.Fivegsmcongestionreattemptindicator.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionReleaseCommandAccessTypeType:
 			a.SpareHalfOctetAndAccessType = nasType.NewSpareHalfOctetAndAccessType()
@@ -202,26 +203,30 @@ func (a *PDUSessionReleaseCommand) DecodePDUSessionReleaseCommand(byteArray *[]b
 		case PDUSessionReleaseCommandServiceLevelAAContainerType:
 			a.ServiceLevelAAContainer = nasType.NewServiceLevelAAContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ServiceLevelAAContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.ServiceLevelAAContainer.SetLen(a.ServiceLevelAAContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ServiceLevelAAContainer.Buffer[:a.ServiceLevelAAContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionReleaseCommandAlternativeSNSSAIType:
 			a.AlternativeSNSSAI = nasType.NewSNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AlternativeSNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.AlternativeSNSSAI.SetLen(a.AlternativeSNSSAI.GetLen())
 			if a.AlternativeSNSSAI.GetLen() > uint8(len(a.AlternativeSNSSAI.Octet)) {
 				a.AlternativeSNSSAI = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: AlternativeSNSSAI length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.AlternativeSNSSAI.Octet[:a.AlternativeSNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

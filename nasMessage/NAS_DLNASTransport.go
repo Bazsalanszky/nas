@@ -110,26 +110,26 @@ func (a *DLNASTransport) EncodeDLNASTransport(buffer *bytes.Buffer) {
 	}
 }
 
-func (a *DLNASTransport) DecodeDLNASTransport(byteArray *[]byte) {
+func (a *DLNASTransport) DecodeDLNASTransport(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.DLNASTRANSPORTMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndPayloadContainerType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PayloadContainer.Len); err != nil {
-		return
+		return err
 	}
 	a.PayloadContainer.SetLen(a.PayloadContainer.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.PayloadContainer.Buffer); err != nil {
-		return
+		return err
 	}
 	if a.SpareHalfOctetAndPayloadContainerType.Octet == uint8(1) {
 		// best-effort extraction of the UE IP address; malformed/short ESM content just stops this scan
@@ -205,7 +205,7 @@ func (a *DLNASTransport) DecodeDLNASTransport(byteArray *[]byte) {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -216,41 +216,45 @@ func (a *DLNASTransport) DecodeDLNASTransport(byteArray *[]byte) {
 		case DLNASTransportPduSessionID2ValueType:
 			a.PduSessionID2Value = nasType.NewPduSessionID2Value(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PduSessionID2Value.Octet); err != nil {
-				return
+				return err
 			}
 		case DLNASTransportAdditionalInformationType:
 			a.AdditionalInformation = nasType.NewAdditionalInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AdditionalInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.AdditionalInformation.SetLen(a.AdditionalInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.AdditionalInformation.Buffer[:a.AdditionalInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case DLNASTransportCause5GMMType:
 			a.Cause5GMM = nasType.NewCause5GMM(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Cause5GMM.Octet); err != nil {
-				return
+				return err
 			}
 		case DLNASTransportBackoffTimerValueType:
 			a.BackoffTimerValue = nasType.NewBackoffTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.BackoffTimerValue.Len); err != nil {
-				return
+				return err
 			}
 			a.BackoffTimerValue.SetLen(a.BackoffTimerValue.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.BackoffTimerValue.Octet); err != nil {
-				return
+				return err
 			}
 		case DLNASTransportLowerBoundTimerValueType:
 			a.LowerBoundTimerValue = nasType.NewLowerBoundTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.LowerBoundTimerValue.Len); err != nil {
-				return
+				return err
 			}
 			a.LowerBoundTimerValue.SetLen(a.LowerBoundTimerValue.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.LowerBoundTimerValue.Octet); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

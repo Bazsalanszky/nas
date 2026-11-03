@@ -8,6 +8,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -55,25 +56,25 @@ func (a *AuthenticationFailure) EncodeAuthenticationFailure(buffer *bytes.Buffer
 	}
 }
 
-func (a *AuthenticationFailure) DecodeAuthenticationFailure(byteArray *[]byte) {
+func (a *AuthenticationFailure) DecodeAuthenticationFailure(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.AuthenticationFailureMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.Cause5GMM.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -84,17 +85,21 @@ func (a *AuthenticationFailure) DecodeAuthenticationFailure(byteArray *[]byte) {
 		case AuthenticationFailureAuthenticationFailureParameterType:
 			a.AuthenticationFailureParameter = nasType.NewAuthenticationFailureParameter(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Len); err != nil {
-				return
+				return err
 			}
 			a.SetLen(a.GetLen())
 			if a.GetLen() > uint8(len(a.AuthenticationFailureParameter.Octet)) {
 				a.AuthenticationFailureParameter = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: AuthenticationFailureParameter length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.AuthenticationFailureParameter.Octet[:a.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

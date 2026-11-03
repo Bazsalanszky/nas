@@ -91,7 +91,9 @@ func TestNasTypeNewAuthenticationResultMessage(t *testing.T) {
 		if _, err := buff.Read(data); err != nil {
 			t.Fatal(err)
 		}
-		b.DecodeAuthenticationResult(&data)
+		if err := b.DecodeAuthenticationResult(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln(data)
 		logger.NasMsgLog.Debugln("Decode: ", b)
 

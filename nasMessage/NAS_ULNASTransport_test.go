@@ -128,7 +128,9 @@ func TestNasTypeNewULNASTransportMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeULNASTransport(&data)
+		if err := b.DecodeULNASTransport(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {
@@ -182,7 +184,9 @@ func TestULNASTransportNewIEsEncodeDecode(t *testing.T) {
 		t.Fatal(err)
 	}
 	logger.NasMsgLog.Debugln(data)
-	b.DecodeULNASTransport(&data)
+	if err := b.DecodeULNASTransport(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("Decode: ", b)
 
 	if reflect.DeepEqual(a, b) != true {

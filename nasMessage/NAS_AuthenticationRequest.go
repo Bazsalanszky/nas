@@ -8,6 +8,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -85,32 +86,32 @@ func (a *AuthenticationRequest) EncodeAuthenticationRequest(buffer *bytes.Buffer
 	}
 }
 
-func (a *AuthenticationRequest) DecodeAuthenticationRequest(byteArray *[]byte) {
+func (a *AuthenticationRequest) DecodeAuthenticationRequest(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.AuthenticationRequestMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndNgksi.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.ABBA.Len); err != nil {
-		return
+		return err
 	}
 	a.ABBA.SetLen(a.ABBA.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.ABBA.Buffer); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -121,31 +122,35 @@ func (a *AuthenticationRequest) DecodeAuthenticationRequest(byteArray *[]byte) {
 		case AuthenticationRequestAuthenticationParameterRANDType:
 			a.AuthenticationParameterRAND = nasType.NewAuthenticationParameterRAND(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AuthenticationParameterRAND.Octet); err != nil {
-				return
+				return err
 			}
 		case AuthenticationRequestAuthenticationParameterAUTNType:
 			a.AuthenticationParameterAUTN = nasType.NewAuthenticationParameterAUTN(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AuthenticationParameterAUTN.Len); err != nil {
-				return
+				return err
 			}
 			a.AuthenticationParameterAUTN.SetLen(a.AuthenticationParameterAUTN.GetLen())
 			if a.AuthenticationParameterAUTN.GetLen() > uint8(len(a.AuthenticationParameterAUTN.Octet)) {
 				a.AuthenticationParameterAUTN = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: AuthenticationParameterAUTN length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.AuthenticationParameterAUTN.Octet[:a.AuthenticationParameterAUTN.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case AuthenticationRequestEAPMessageType:
 			a.EAPMessage = nasType.NewEAPMessage(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-				return
+				return err
 			}
 			a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EAPMessage.Buffer[:a.EAPMessage.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

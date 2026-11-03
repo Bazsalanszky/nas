@@ -73,7 +73,9 @@ func TestNasTypeNewPDUSessionModificationCompleteMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodePDUSessionModificationComplete(&data)
+		if err := b.DecodePDUSessionModificationComplete(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {

@@ -75,32 +75,32 @@ func (a *AuthenticationResult) EncodeAuthenticationResult(buffer *bytes.Buffer) 
 	}
 }
 
-func (a *AuthenticationResult) DecodeAuthenticationResult(byteArray *[]byte) {
+func (a *AuthenticationResult) DecodeAuthenticationResult(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.AuthenticationResultMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndNgksi.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-		return
+		return err
 	}
 	a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Buffer); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -111,22 +111,26 @@ func (a *AuthenticationResult) DecodeAuthenticationResult(byteArray *[]byte) {
 		case AuthenticationResultABBAType:
 			a.ABBA = nasType.NewABBA(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ABBA.Len); err != nil {
-				return
+				return err
 			}
 			a.ABBA.SetLen(a.ABBA.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ABBA.Buffer[:a.ABBA.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case AuthenticationResultMasterSessionKeyType:
 			a.MasterSessionKey = nasType.NewMasterSessionKey(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.MasterSessionKey.Len); err != nil {
-				return
+				return err
 			}
 			a.MasterSessionKey.SetLen(a.MasterSessionKey.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.MasterSessionKey.Buffer[:a.MasterSessionKey.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

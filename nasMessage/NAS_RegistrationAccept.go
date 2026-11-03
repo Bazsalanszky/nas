@@ -7,6 +7,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -729,29 +730,29 @@ func (a *RegistrationAccept) EncodeRegistrationAccept(buffer *bytes.Buffer) {
 	}
 }
 
-func (a *RegistrationAccept) DecodeRegistrationAccept(byteArray *[]byte) {
+func (a *RegistrationAccept) DecodeRegistrationAccept(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.RegistrationAcceptMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.RegistrationResult5GS.Len); err != nil {
-		return
+		return err
 	}
 	a.RegistrationResult5GS.SetLen(a.RegistrationResult5GS.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.RegistrationResult5GS.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -762,113 +763,113 @@ func (a *RegistrationAccept) DecodeRegistrationAccept(byteArray *[]byte) {
 		case RegistrationAcceptGUTI5GType:
 			a.GUTI5G = nasType.NewGUTI5G(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.GUTI5G.Len); err != nil {
-				return
+				return err
 			}
 			a.GUTI5G.SetLen(a.GUTI5G.GetLen())
 			if a.GUTI5G.GetLen() > uint16(len(a.GUTI5G.Octet)) {
 				a.GUTI5G = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: GUTI5G length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.GUTI5G.Octet[:a.GUTI5G.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptEquivalentPlmnsType:
 			a.EquivalentPlmns = nasType.NewEquivalentPlmns(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EquivalentPlmns.Len); err != nil {
-				return
+				return err
 			}
 			a.EquivalentPlmns.SetLen(a.EquivalentPlmns.GetLen())
 			if a.EquivalentPlmns.GetLen() > uint8(len(a.EquivalentPlmns.Octet)) {
 				a.EquivalentPlmns = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: EquivalentPlmns length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.EquivalentPlmns.Octet[:a.EquivalentPlmns.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptTAIListType:
 			a.TAIList = nasType.NewTAIList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.TAIList.Len); err != nil {
-				return
+				return err
 			}
 			a.TAIList.SetLen(a.TAIList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.TAIList.Buffer[:a.TAIList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptAllowedNSSAIType:
 			a.AllowedNSSAI = nasType.NewAllowedNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AllowedNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.AllowedNSSAI.SetLen(a.AllowedNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.AllowedNSSAI.Buffer[:a.AllowedNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptRejectedNSSAIType:
 			a.RejectedNSSAI = nasType.NewRejectedNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RejectedNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.RejectedNSSAI.SetLen(a.RejectedNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.RejectedNSSAI.Buffer[:a.RejectedNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptConfiguredNSSAIType:
 			a.ConfiguredNSSAI = nasType.NewConfiguredNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ConfiguredNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.ConfiguredNSSAI.SetLen(a.ConfiguredNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ConfiguredNSSAI.Buffer[:a.ConfiguredNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNetworkFeatureSupport5GSType:
 			a.NetworkFeatureSupport5GS = nasType.NewNetworkFeatureSupport5GS(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NetworkFeatureSupport5GS.Len); err != nil {
-				return
+				return err
 			}
 			a.NetworkFeatureSupport5GS.SetLen(a.NetworkFeatureSupport5GS.GetLen())
 			if a.NetworkFeatureSupport5GS.GetLen() > uint8(len(a.NetworkFeatureSupport5GS.Octet)) {
 				a.NetworkFeatureSupport5GS = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: NetworkFeatureSupport5GS length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.NetworkFeatureSupport5GS.Octet[:a.NetworkFeatureSupport5GS.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptPDUSessionStatusType:
 			a.PDUSessionStatus = nasType.NewPDUSessionStatus(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionStatus.Len); err != nil {
-				return
+				return err
 			}
 			a.PDUSessionStatus.SetLen(a.PDUSessionStatus.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PDUSessionStatus.Buffer[:a.PDUSessionStatus.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptPDUSessionReactivationResultType:
 			a.PDUSessionReactivationResult = nasType.NewPDUSessionReactivationResult(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionReactivationResult.Len); err != nil {
-				return
+				return err
 			}
 			a.PDUSessionReactivationResult.SetLen(a.PDUSessionReactivationResult.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PDUSessionReactivationResult.Buffer[:a.PDUSessionReactivationResult.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptPDUSessionReactivationResultErrorCauseType:
 			a.PDUSessionReactivationResultErrorCause = nasType.NewPDUSessionReactivationResultErrorCause(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionReactivationResultErrorCause.Len); err != nil {
-				return
+				return err
 			}
 			a.PDUSessionReactivationResultErrorCause.SetLen(a.PDUSessionReactivationResultErrorCause.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PDUSessionReactivationResultErrorCause.Buffer[:a.PDUSessionReactivationResultErrorCause.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptLADNInformationType:
 			a.LADNInformation = nasType.NewLADNInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.LADNInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.LADNInformation.SetLen(a.LADNInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.LADNInformation.Buffer[:a.LADNInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptMICOIndicationType:
 			a.MICOIndication = nasType.NewMICOIndication(ieiN)
@@ -879,74 +880,74 @@ func (a *RegistrationAccept) DecodeRegistrationAccept(byteArray *[]byte) {
 		case RegistrationAcceptServiceAreaListType:
 			a.ServiceAreaList = nasType.NewServiceAreaList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ServiceAreaList.Len); err != nil {
-				return
+				return err
 			}
 			a.ServiceAreaList.SetLen(a.ServiceAreaList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ServiceAreaList.Buffer[:a.ServiceAreaList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptT3512ValueType:
 			a.T3512Value = nasType.NewT3512Value(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3512Value.Len); err != nil {
-				return
+				return err
 			}
 			a.T3512Value.SetLen(a.T3512Value.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3512Value.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNon3GppDeregistrationTimerValueType:
 			a.Non3GppDeregistrationTimerValue = nasType.NewNon3GppDeregistrationTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Non3GppDeregistrationTimerValue.Len); err != nil {
-				return
+				return err
 			}
 			a.Non3GppDeregistrationTimerValue.SetLen(a.Non3GppDeregistrationTimerValue.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.Non3GppDeregistrationTimerValue.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptT3502ValueType:
 			a.T3502Value = nasType.NewT3502Value(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3502Value.Len); err != nil {
-				return
+				return err
 			}
 			a.T3502Value.SetLen(a.T3502Value.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.T3502Value.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptEmergencyNumberListType:
 			a.EmergencyNumberList = nasType.NewEmergencyNumberList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EmergencyNumberList.Len); err != nil {
-				return
+				return err
 			}
 			a.EmergencyNumberList.SetLen(a.EmergencyNumberList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EmergencyNumberList.Buffer[:a.EmergencyNumberList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptExtendedEmergencyNumberListType:
 			a.ExtendedEmergencyNumberList = nasType.NewExtendedEmergencyNumberList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedEmergencyNumberList.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedEmergencyNumberList.SetLen(a.ExtendedEmergencyNumberList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedEmergencyNumberList.Buffer[:a.ExtendedEmergencyNumberList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptSORTransparentContainerType:
 			a.SORTransparentContainer = nasType.NewSORTransparentContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.SORTransparentContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.SORTransparentContainer.SetLen(a.SORTransparentContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.SORTransparentContainer.Buffer[:a.SORTransparentContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptEAPMessageType:
 			a.EAPMessage = nasType.NewEAPMessage(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-				return
+				return err
 			}
 			a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EAPMessage.Buffer[:a.EAPMessage.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNSSAIInclusionModeType:
 			a.NSSAIInclusionMode = nasType.NewNSSAIInclusionMode(ieiN)
@@ -954,50 +955,50 @@ func (a *RegistrationAccept) DecodeRegistrationAccept(byteArray *[]byte) {
 		case RegistrationAcceptOperatordefinedAccessCategoryDefinitionsType:
 			a.OperatordefinedAccessCategoryDefinitions = nasType.NewOperatordefinedAccessCategoryDefinitions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.OperatordefinedAccessCategoryDefinitions.Len); err != nil {
-				return
+				return err
 			}
 			a.OperatordefinedAccessCategoryDefinitions.SetLen(a.OperatordefinedAccessCategoryDefinitions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.OperatordefinedAccessCategoryDefinitions.Buffer[:a.OperatordefinedAccessCategoryDefinitions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNegotiatedDRXParametersType:
 			a.NegotiatedDRXParameters = nasType.NewNegotiatedDRXParameters(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NegotiatedDRXParameters.Len); err != nil {
-				return
+				return err
 			}
 			a.NegotiatedDRXParameters.SetLen(a.NegotiatedDRXParameters.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.NegotiatedDRXParameters.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptEPSBearerContextStatusType:
 			a.EPSBearerContextStatus = nasType.NewEPSBearerContextStatus(ieiN)
 			var lenN0 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN0); err != nil {
-				return
+				return err
 			}
 			a.EPSBearerContextStatus.SetLen(uint16(lenN0))
 			if err := binary.Read(buffer, binary.BigEndian, a.EPSBearerContextStatus.Buffer[:lenN0]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptExtendedDRXParametersType:
 			a.ExtendedDRXParameters = nasType.NewExtendedDRXParameters(ieiN)
 			var lenN1 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN1); err != nil {
-				return
+				return err
 			}
 			a.ExtendedDRXParameters.SetLen(uint16(lenN1))
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedDRXParameters.Buffer[:lenN1]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptUERadioCapabilityIDType:
 			a.UERadioCapabilityID = nasType.NewUERadioCapabilityID(ieiN)
 			var lenN2 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN2); err != nil {
-				return
+				return err
 			}
 			a.UERadioCapabilityID.SetLen(uint16(lenN2))
 			if err := binary.Read(buffer, binary.BigEndian, a.UERadioCapabilityID.Buffer[:lenN2]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptUERadioCapabilityIDDeletionIndicationType:
 			a.UERadioCapabilityIDDeletionIndicationIE = nasType.NewUERadioCapabilityIDDeletionIndicationIE(ieiN)
@@ -1005,116 +1006,116 @@ func (a *RegistrationAccept) DecodeRegistrationAccept(byteArray *[]byte) {
 		case RegistrationAcceptCipheringKeyDataType:
 			a.CipheringKeyData = nasType.NewCipheringKeyData(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.CipheringKeyData.Len); err != nil {
-				return
+				return err
 			}
 			a.CipheringKeyData.SetLen(a.CipheringKeyData.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.CipheringKeyData.Buffer[:a.CipheringKeyData.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptCAGInformationListType:
 			a.CAGInformationList = nasType.NewCAGInformationList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.CAGInformationList.Len); err != nil {
-				return
+				return err
 			}
 			a.CAGInformationList.SetLen(a.CAGInformationList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.CAGInformationList.Buffer[:a.CAGInformationList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptTruncatedFiveGSTMSIConfigurationType:
 			a.TruncatedFiveGSTMSIConfiguration = nasType.NewTruncatedFiveGSTMSIConfiguration(ieiN)
 			var lenN3 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN3); err != nil {
-				return
+				return err
 			}
 			a.TruncatedFiveGSTMSIConfiguration.SetLen(uint16(lenN3))
 			if err := binary.Read(buffer, binary.BigEndian, a.TruncatedFiveGSTMSIConfiguration.Buffer[:lenN3]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptExtendedRejectedNSSAIType:
 			a.ExtendedRejectedNSSAI = nasType.NewExtendedRejectedNSSAI(ieiN)
 			var lenN4 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN4); err != nil {
-				return
+				return err
 			}
 			a.ExtendedRejectedNSSAI.SetLen(uint16(lenN4))
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedRejectedNSSAI.Buffer[:lenN4]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptServiceLevelAAContainerType:
 			a.ServiceLevelAAContainer = nasType.NewServiceLevelAAContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ServiceLevelAAContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.ServiceLevelAAContainer.SetLen(a.ServiceLevelAAContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ServiceLevelAAContainer.Buffer[:a.ServiceLevelAAContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptFiveGSAdditionalRequestResultType:
 			a.FiveGSAdditionalRequestResult = nasType.NewFiveGSAdditionalRequestResult(ieiN)
 			var lenN5 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN5); err != nil {
-				return
+				return err
 			}
 			a.FiveGSAdditionalRequestResult.SetLen(uint16(lenN5))
 			if err := binary.Read(buffer, binary.BigEndian, a.FiveGSAdditionalRequestResult.Buffer[:lenN5]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNSSRGInformationType:
 			a.NSSRGInformation = nasType.NewNSSRGInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NSSRGInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.NSSRGInformation.SetLen(a.NSSRGInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.NSSRGInformation.Buffer[:a.NSSRGInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptRegistrationWaitRangeType:
 			a.RegistrationWaitRange = nasType.NewRegistrationWaitRange(ieiN)
 			var lenN6 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN6); err != nil {
-				return
+				return err
 			}
 			a.RegistrationWaitRange.SetLen(uint16(lenN6))
 			if err := binary.Read(buffer, binary.BigEndian, a.RegistrationWaitRange.Buffer[:lenN6]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptDisasterReturnWaitRangeType:
 			a.DisasterReturnWaitRange = nasType.NewRegistrationWaitRange(ieiN)
 			var lenN6a uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN6a); err != nil {
-				return
+				return err
 			}
 			a.DisasterReturnWaitRange.SetLen(uint16(lenN6a))
 			if err := binary.Read(buffer, binary.BigEndian, a.DisasterReturnWaitRange.Buffer[:lenN6a]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptListOfPLMNsForDisasterConditionType:
 			a.ListOfPLMNsForDisasterCondition = nasType.NewListOfPLMNsForDisasterCondition(ieiN)
 			var lenN7 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN7); err != nil {
-				return
+				return err
 			}
 			a.ListOfPLMNsForDisasterCondition.SetLen(uint16(lenN7))
 			if err := binary.Read(buffer, binary.BigEndian, a.ListOfPLMNsForDisasterCondition.Buffer[:lenN7]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptExtendedCAGInformationListType:
 			a.ExtendedCAGInformationList = nasType.NewExtendedCAGInformationList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedCAGInformationList.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedCAGInformationList.SetLen(a.ExtendedCAGInformationList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedCAGInformationList.Buffer[:a.ExtendedCAGInformationList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNSAGInformationType:
 			a.NSAGInformation = nasType.NewNSAGInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NSAGInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.NSAGInformation.SetLen(a.NSAGInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.NSAGInformation.Buffer[:a.NSAGInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNon3GPPNWProvidedPoliciesType:
 			a.Non3GPPNWProvidedPolicies = nasType.NewNon3GPPNWProvidedPolicies(ieiN)
@@ -1122,133 +1123,137 @@ func (a *RegistrationAccept) DecodeRegistrationAccept(byteArray *[]byte) {
 		case RegistrationAcceptPendingNSSAIType:
 			a.PendingNSSAI = nasType.NewPendingNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PendingNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.PendingNSSAI.SetLen(a.PendingNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PendingNSSAI.Buffer[:a.PendingNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNegotiatedNBN1ModeDRXParametersType:
 			a.NegotiatedNBN1ModeDRXParameters = nasType.NewNBN1ModeDRXParameters(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NegotiatedNBN1ModeDRXParameters.Len); err != nil {
-				return
+				return err
 			}
 			a.NegotiatedNBN1ModeDRXParameters.SetLen(a.NegotiatedNBN1ModeDRXParameters.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.NegotiatedNBN1ModeDRXParameters.Buffer[:a.NegotiatedNBN1ModeDRXParameters.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNegotiatedWUSAssistanceInformationType:
 			a.NegotiatedWUSAssistanceInformation = nasType.NewWUSAssistanceInformation(ieiN)
 			var l uint8
 			if err := binary.Read(buffer, binary.BigEndian, &l); err != nil {
-				return
+				return err
 			}
 			a.NegotiatedWUSAssistanceInformation.SetLen(uint16(l))
 			if err := binary.Read(buffer, binary.BigEndian, a.NegotiatedWUSAssistanceInformation.Buffer[:l]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNegotiatedPEIPSAssistanceInformationType:
 			a.NegotiatedPEIPSAssistanceInformation = nasType.NewPEIPSAssistanceInformation(ieiN)
 			var l uint8
 			if err := binary.Read(buffer, binary.BigEndian, &l); err != nil {
-				return
+				return err
 			}
 			a.NegotiatedPEIPSAssistanceInformation.SetLen(uint16(l))
 			if err := binary.Read(buffer, binary.BigEndian, a.NegotiatedPEIPSAssistanceInformation.Buffer[:l]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptForbiddenTAIRoamingType:
 			a.ForbiddenTAIRoaming = nasType.NewTAIList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ForbiddenTAIRoaming.Len); err != nil {
-				return
+				return err
 			}
 			a.ForbiddenTAIRoaming.SetLen(a.ForbiddenTAIRoaming.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ForbiddenTAIRoaming.Buffer[:a.ForbiddenTAIRoaming.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptForbiddenTAIRegionalProvisionType:
 			a.ForbiddenTAIRegionalProvision = nasType.NewTAIList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ForbiddenTAIRegionalProvision.Len); err != nil {
-				return
+				return err
 			}
 			a.ForbiddenTAIRegionalProvision.SetLen(a.ForbiddenTAIRegionalProvision.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ForbiddenTAIRegionalProvision.Buffer[:a.ForbiddenTAIRegionalProvision.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptEquivalentSNPNsType:
 			a.EquivalentSNPNs = nasType.NewEquivalentSNPNs(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EquivalentSNPNs.Len); err != nil {
-				return
+				return err
 			}
 			a.EquivalentSNPNs.SetLen(a.EquivalentSNPNs.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EquivalentSNPNs.Buffer[:a.EquivalentSNPNs.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptNIDType:
 			a.NID = nasType.NewNID(ieiN)
 			var l uint8
 			if err := binary.Read(buffer, binary.BigEndian, &l); err != nil {
-				return
+				return err
 			}
 			a.NID.SetLen(uint16(l))
 			if err := binary.Read(buffer, binary.BigEndian, a.NID.Buffer[:l]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptRANTimingSynchronizationType:
 			a.RANTimingSynchronization = nasType.NewRANTimingSynchronization(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RANTimingSynchronization.Len); err != nil {
-				return
+				return err
 			}
 			a.RANTimingSynchronization.SetLen(a.RANTimingSynchronization.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.RANTimingSynchronization.Buffer[:a.RANTimingSynchronization.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptAlternativeNSSAIType:
 			a.AlternativeNSSAI = nasType.NewAlternativeNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AlternativeNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.AlternativeNSSAI.SetLen(a.AlternativeNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.AlternativeNSSAI.Buffer[:a.AlternativeNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptDiscontinuousCoverageMaxTimeOffsetType:
 			a.DiscontinuousCoverageMaxTimeOffset = nasType.NewDiscontinuousCoverageMaxTimeOffset(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.DiscontinuousCoverageMaxTimeOffset.Len); err != nil {
-				return
+				return err
 			}
 			a.DiscontinuousCoverageMaxTimeOffset.SetLen(a.DiscontinuousCoverageMaxTimeOffset.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.DiscontinuousCoverageMaxTimeOffset.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptSNSSAITimeValidityInformationType:
 			a.SNSSAITimeValidityInformation = nasType.NewSNSSAITimeValidityInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.SNSSAITimeValidityInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.SNSSAITimeValidityInformation.SetLen(a.SNSSAITimeValidityInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.SNSSAITimeValidityInformation.Buffer[:a.SNSSAITimeValidityInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptUnavailabilityPeriodDurationType:
 			a.UnavailabilityPeriodDuration = nasType.NewLowerBoundTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.UnavailabilityPeriodDuration.Len); err != nil {
-				return
+				return err
 			}
 			a.UnavailabilityPeriodDuration.SetLen(a.UnavailabilityPeriodDuration.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.UnavailabilityPeriodDuration.Octet); err != nil {
-				return
+				return err
 			}
 		case RegistrationAcceptFeatureAuthorizationIndicationType:
 			a.FeatureAuthorizationIndication = nasType.NewFeatureAuthorizationIndication(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.FeatureAuthorizationIndication.Len); err != nil {
-				return
+				return err
 			}
 			a.FeatureAuthorizationIndication.SetLen(a.FeatureAuthorizationIndication.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.FeatureAuthorizationIndication.Buffer[:a.FeatureAuthorizationIndication.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

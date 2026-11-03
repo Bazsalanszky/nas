@@ -105,7 +105,9 @@ func TestNasTypeNewPDUSessionEstablishmentRejectMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodePDUSessionEstablishmentReject(&data)
+		if err := b.DecodePDUSessionEstablishmentReject(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {

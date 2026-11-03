@@ -8,6 +8,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -289,42 +290,42 @@ func (a *PDUSessionEstablishmentAccept) EncodePDUSessionEstablishmentAccept(buff
 	}
 }
 
-func (a *PDUSessionEstablishmentAccept) DecodePDUSessionEstablishmentAccept(byteArray *[]byte) {
+func (a *PDUSessionEstablishmentAccept) DecodePDUSessionEstablishmentAccept(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionID.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PTI.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSESSIONESTABLISHMENTACCEPTMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SelectedSSCModeAndSelectedPDUSessionType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.AuthorizedQosRules.Len); err != nil {
-		return
+		return err
 	}
 	a.AuthorizedQosRules.SetLen(a.AuthorizedQosRules.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.AuthorizedQosRules.Buffer); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SessionAMBR.Len); err != nil {
-		return
+		return err
 	}
 	a.SessionAMBR.SetLen(a.SessionAMBR.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.SessionAMBR.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -335,38 +336,38 @@ func (a *PDUSessionEstablishmentAccept) DecodePDUSessionEstablishmentAccept(byte
 		case PDUSessionEstablishmentAcceptCause5GSMType:
 			a.Cause5GSM = nasType.NewCause5GSM(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Cause5GSM.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptPDUAddressType:
 			a.PDUAddress = nasType.NewPDUAddress(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PDUAddress.Len); err != nil {
-				return
+				return err
 			}
 			a.PDUAddress.SetLen(a.PDUAddress.GetLen())
 			if a.PDUAddress.GetLen() > uint8(len(a.PDUAddress.Octet)) {
 				a.PDUAddress = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: PDUAddress length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.PDUAddress.Octet[:a.PDUAddress.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptRQTimerValueType:
 			a.RQTimerValue = nasType.NewRQTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RQTimerValue.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptSNSSAIType:
 			a.SNSSAI = nasType.NewSNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.SNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.SNSSAI.SetLen(a.SNSSAI.GetLen())
 			if a.SNSSAI.GetLen() > uint8(len(a.SNSSAI.Octet)) {
 				a.SNSSAI = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: SNSSAI length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.SNSSAI.Octet[:a.SNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptAlwaysonPDUSessionIndicationType:
 			a.AlwaysonPDUSessionIndication = nasType.NewAlwaysonPDUSessionIndication(ieiN)
@@ -374,74 +375,74 @@ func (a *PDUSessionEstablishmentAccept) DecodePDUSessionEstablishmentAccept(byte
 		case PDUSessionEstablishmentAcceptMappedEPSBearerContextsType:
 			a.MappedEPSBearerContexts = nasType.NewMappedEPSBearerContexts(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.MappedEPSBearerContexts.Len); err != nil {
-				return
+				return err
 			}
 			a.MappedEPSBearerContexts.SetLen(a.MappedEPSBearerContexts.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.MappedEPSBearerContexts.Buffer[:a.MappedEPSBearerContexts.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptEAPMessageType:
 			a.EAPMessage = nasType.NewEAPMessage(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-				return
+				return err
 			}
 			a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EAPMessage.Buffer[:a.EAPMessage.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptAuthorizedQosFlowDescriptionsType:
 			a.AuthorizedQosFlowDescriptions = nasType.NewAuthorizedQosFlowDescriptions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AuthorizedQosFlowDescriptions.Len); err != nil {
-				return
+				return err
 			}
 			a.AuthorizedQosFlowDescriptions.SetLen(a.AuthorizedQosFlowDescriptions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.AuthorizedQosFlowDescriptions.Buffer[:a.AuthorizedQosFlowDescriptions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptExtendedProtocolConfigurationOptionsType:
 			a.ExtendedProtocolConfigurationOptions = nasType.NewExtendedProtocolConfigurationOptions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolConfigurationOptions.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedProtocolConfigurationOptions.SetLen(a.ExtendedProtocolConfigurationOptions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedProtocolConfigurationOptions.Buffer[:a.ExtendedProtocolConfigurationOptions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptDNNType:
 			a.DNN = nasType.NewDNN(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.DNN.Len); err != nil {
-				return
+				return err
 			}
 			a.DNN.SetLen(a.DNN.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.DNN.Buffer[:a.DNN.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptFiveGSMNetworkFeatureSupportType:
 			a.FiveGSMNetworkFeatureSupport = nasType.NewFiveGSMNetworkFeatureSupport(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.FiveGSMNetworkFeatureSupport.Len); err != nil {
-				return
+				return err
 			}
 			a.FiveGSMNetworkFeatureSupport.SetLen(a.FiveGSMNetworkFeatureSupport.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.FiveGSMNetworkFeatureSupport.Buffer[:a.FiveGSMNetworkFeatureSupport.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptServingPLMNRateControlType:
 			a.ServingPLMNRateControl = nasType.NewServingPLMNRateControl(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ServingPLMNRateControl.Len); err != nil {
-				return
+				return err
 			}
 			a.ServingPLMNRateControl.SetLen(a.ServingPLMNRateControl.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ServingPLMNRateControl.Buffer[:a.ServingPLMNRateControl.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptATSSSContainerType:
 			a.ATSSSContainer = nasType.NewATSSSContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ATSSSContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.ATSSSContainer.SetLen(a.ATSSSContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ATSSSContainer.Buffer[:a.ATSSSContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptControlPlaneOnlyIndicationType:
 			a.ControlPlaneOnlyIndication = nasType.NewControlPlaneOnlyIndication(ieiN)
@@ -449,49 +450,53 @@ func (a *PDUSessionEstablishmentAccept) DecodePDUSessionEstablishmentAccept(byte
 		case PDUSessionEstablishmentAcceptIPHeaderCompressionConfigurationType:
 			a.IPHeaderCompressionConfiguration = nasType.NewIPHeaderCompressionConfiguration(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.IPHeaderCompressionConfiguration.Len); err != nil {
-				return
+				return err
 			}
 			a.IPHeaderCompressionConfiguration.SetLen(a.IPHeaderCompressionConfiguration.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.IPHeaderCompressionConfiguration.Buffer[:a.IPHeaderCompressionConfiguration.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptEthernetHeaderCompressionConfigType:
 			a.EthernetHeaderCompressionConfiguration = nasType.NewEthernetHeaderCompressionConfiguration(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EthernetHeaderCompressionConfiguration.Len); err != nil {
-				return
+				return err
 			}
 			a.EthernetHeaderCompressionConfiguration.SetLen(a.EthernetHeaderCompressionConfiguration.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.EthernetHeaderCompressionConfiguration.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptServiceLevelAAContainerType:
 			a.ServiceLevelAAContainer = nasType.NewServiceLevelAAContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ServiceLevelAAContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.ServiceLevelAAContainer.SetLen(a.ServiceLevelAAContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ServiceLevelAAContainer.Buffer[:a.ServiceLevelAAContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptReceivedMBSContainerType:
 			a.ReceivedMBSContainer = nasType.NewReceivedMBSContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ReceivedMBSContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.ReceivedMBSContainer.SetLen(a.ReceivedMBSContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ReceivedMBSContainer.Buffer[:a.ReceivedMBSContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionEstablishmentAcceptN3QAIType:
 			a.N3QAI = nasType.NewN3QAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.N3QAI.Len); err != nil {
-				return
+				return err
 			}
 			a.N3QAI.SetLen(a.N3QAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.N3QAI.Buffer[:a.N3QAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

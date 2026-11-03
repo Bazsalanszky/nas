@@ -8,6 +8,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -64,22 +65,22 @@ func (a *AuthenticationResponse) EncodeAuthenticationResponse(buffer *bytes.Buff
 	}
 }
 
-func (a *AuthenticationResponse) DecodeAuthenticationResponse(byteArray *[]byte) {
+func (a *AuthenticationResponse) DecodeAuthenticationResponse(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.AuthenticationResponseMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -90,26 +91,30 @@ func (a *AuthenticationResponse) DecodeAuthenticationResponse(byteArray *[]byte)
 		case AuthenticationResponseAuthenticationResponseParameterType:
 			a.AuthenticationResponseParameter = nasType.NewAuthenticationResponseParameter(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AuthenticationResponseParameter.Len); err != nil {
-				return
+				return err
 			}
 			a.AuthenticationResponseParameter.SetLen(a.AuthenticationResponseParameter.GetLen())
 			if a.AuthenticationResponseParameter.GetLen() > uint8(len(a.AuthenticationResponseParameter.Octet)) {
 				a.AuthenticationResponseParameter = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: AuthenticationResponseParameter length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.AuthenticationResponseParameter.Octet[:a.AuthenticationResponseParameter.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case AuthenticationResponseEAPMessageType:
 			a.EAPMessage = nasType.NewEAPMessage(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-				return
+				return err
 			}
 			a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.Buffer[:a.EAPMessage.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

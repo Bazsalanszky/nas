@@ -72,7 +72,9 @@ func TestNasTypeNewStatus5GMMMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeStatus5GMM(&data)
+		if err := b.DecodeStatus5GMM(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {

@@ -246,7 +246,9 @@ func TestNasTypeNewRegistrationRequestMessage(t *testing.T) {
 		if _, err := buff.Read(data); err != nil {
 			t.Fatal(err)
 		}
-		b.DecodeRegistrationRequest(&data)
+		if err := b.DecodeRegistrationRequest(&data); err != nil {
+			t.Fatal(err)
+		}
 
 		if reflect.DeepEqual(a, b) != true {
 			t.Errorf("Not correct")
@@ -291,7 +293,9 @@ func TestRegistrationRequestNewIEsEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRegistrationRequest(&data)
+	if err := b.DecodeRegistrationRequest(&data); err != nil {
+		t.Fatal(err)
+	}
 
 	if reflect.DeepEqual(a, b) != true {
 		t.Errorf("RegistrationRequest new IEs encode/decode mismatch")

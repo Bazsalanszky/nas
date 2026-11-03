@@ -82,7 +82,9 @@ func TestNasTypeNewPDUSessionAuthenticationCompleteMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodePDUSessionAuthenticationComplete(&data)
+		if err := b.DecodePDUSessionAuthenticationComplete(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {

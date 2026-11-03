@@ -71,7 +71,9 @@ func TestNasTypeNewSecurityModeRejectMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeSecurityModeReject(&data)
+		if err := b.DecodeSecurityModeReject(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {

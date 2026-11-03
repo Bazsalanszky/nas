@@ -80,7 +80,9 @@ func TestNasTypeNewAuthenticationFailureMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln("data:", data)
-		b.DecodeAuthenticationFailure(&data)
+		if err := b.DecodeAuthenticationFailure(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("decode:", b)
 
 		if reflect.DeepEqual(a, b) != true {

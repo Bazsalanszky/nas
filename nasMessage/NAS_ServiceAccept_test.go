@@ -100,7 +100,9 @@ func TestNasTypeNewServiceAcceptMessage(t *testing.T) {
 		if _, err := buff.Read(data); err != nil {
 			t.Fatal(err)
 		}
-		b.DecodeServiceAccept(&data)
+		if err := b.DecodeServiceAccept(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("decode:", b)
 
 		if reflect.DeepEqual(a, b) != true {

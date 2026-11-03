@@ -87,7 +87,9 @@ func TestNasTypeNewDeregistrationRequestUETerminatedDeregistrationMessage(t *tes
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeDeregistrationRequestUETerminatedDeregistration(&data)
+		if err := b.DecodeDeregistrationRequestUETerminatedDeregistration(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Dncode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {

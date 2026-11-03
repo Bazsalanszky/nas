@@ -7,6 +7,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -535,22 +536,22 @@ func (a *ConfigurationUpdateCommand) EncodeConfigurationUpdateCommand(buffer *by
 	}
 }
 
-func (a *ConfigurationUpdateCommand) DecodeConfigurationUpdateCommand(byteArray *[]byte) {
+func (a *ConfigurationUpdateCommand) DecodeConfigurationUpdateCommand(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.ConfigurationUpdateCommandMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -564,88 +565,88 @@ func (a *ConfigurationUpdateCommand) DecodeConfigurationUpdateCommand(byteArray 
 		case ConfigurationUpdateCommandGUTI5GType:
 			a.GUTI5G = nasType.NewGUTI5G(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.GUTI5G.Len); err != nil {
-				return
+				return err
 			}
 			a.GUTI5G.SetLen(a.GUTI5G.GetLen())
 			if a.GUTI5G.GetLen() > uint16(len(a.GUTI5G.Octet)) {
 				a.GUTI5G = nil // discard the malformed IE so a later Encode cannot re-panic on it
-				return
+				return fmt.Errorf("%w: GUTI5G length exceeds maximum", ErrMalformedIE)
 			}
 			if err := binary.Read(buffer, binary.BigEndian, a.GUTI5G.Octet[:a.GUTI5G.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandTAIListType:
 			a.TAIList = nasType.NewTAIList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.TAIList.Len); err != nil {
-				return
+				return err
 			}
 			a.TAIList.SetLen(a.TAIList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.TAIList.Buffer[:a.TAIList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandAllowedNSSAIType:
 			a.AllowedNSSAI = nasType.NewAllowedNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AllowedNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.AllowedNSSAI.SetLen(a.AllowedNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.AllowedNSSAI.Buffer[:a.AllowedNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandServiceAreaListType:
 			a.ServiceAreaList = nasType.NewServiceAreaList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ServiceAreaList.Len); err != nil {
-				return
+				return err
 			}
 			a.ServiceAreaList.SetLen(a.ServiceAreaList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ServiceAreaList.Buffer[:a.ServiceAreaList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandFullNameForNetworkType:
 			a.FullNameForNetwork = nasType.NewFullNameForNetwork(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.FullNameForNetwork.Len); err != nil {
-				return
+				return err
 			}
 			a.FullNameForNetwork.SetLen(a.FullNameForNetwork.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.FullNameForNetwork.Buffer[:a.FullNameForNetwork.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandShortNameForNetworkType:
 			a.ShortNameForNetwork = nasType.NewShortNameForNetwork(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ShortNameForNetwork.Len); err != nil {
-				return
+				return err
 			}
 			a.ShortNameForNetwork.SetLen(a.ShortNameForNetwork.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ShortNameForNetwork.Buffer[:a.ShortNameForNetwork.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandLocalTimeZoneType:
 			a.LocalTimeZone = nasType.NewLocalTimeZone(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.LocalTimeZone.Octet); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandUniversalTimeAndLocalTimeZoneType:
 			a.UniversalTimeAndLocalTimeZone = nasType.NewUniversalTimeAndLocalTimeZone(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.UniversalTimeAndLocalTimeZone.Octet); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandNetworkDaylightSavingTimeType:
 			a.NetworkDaylightSavingTime = nasType.NewNetworkDaylightSavingTime(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NetworkDaylightSavingTime.Len); err != nil {
-				return
+				return err
 			}
 			a.NetworkDaylightSavingTime.SetLen(a.NetworkDaylightSavingTime.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.NetworkDaylightSavingTime.Octet); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandLADNInformationType:
 			a.LADNInformation = nasType.NewLADNInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.LADNInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.LADNInformation.SetLen(a.LADNInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.LADNInformation.Buffer[:a.LADNInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandMICOIndicationType:
 			a.MICOIndication = nasType.NewMICOIndication(ieiN)
@@ -656,29 +657,29 @@ func (a *ConfigurationUpdateCommand) DecodeConfigurationUpdateCommand(byteArray 
 		case ConfigurationUpdateCommandConfiguredNSSAIType:
 			a.ConfiguredNSSAI = nasType.NewConfiguredNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ConfiguredNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.ConfiguredNSSAI.SetLen(a.ConfiguredNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ConfiguredNSSAI.Buffer[:a.ConfiguredNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandRejectedNSSAIType:
 			a.RejectedNSSAI = nasType.NewRejectedNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RejectedNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.RejectedNSSAI.SetLen(a.RejectedNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.RejectedNSSAI.Buffer[:a.RejectedNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandOperatordefinedAccessCategoryDefinitionsType:
 			a.OperatordefinedAccessCategoryDefinitions = nasType.NewOperatordefinedAccessCategoryDefinitions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.OperatordefinedAccessCategoryDefinitions.Len); err != nil {
-				return
+				return err
 			}
 			a.OperatordefinedAccessCategoryDefinitions.SetLen(a.OperatordefinedAccessCategoryDefinitions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.OperatordefinedAccessCategoryDefinitions.Buffer[:a.OperatordefinedAccessCategoryDefinitions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandSMSIndicationType:
 			a.SMSIndication = nasType.NewSMSIndication(ieiN)
@@ -686,21 +687,21 @@ func (a *ConfigurationUpdateCommand) DecodeConfigurationUpdateCommand(byteArray 
 		case ConfigurationUpdateCommandCAGInformationListType:
 			a.CAGInformationList = nasType.NewCAGInformationList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.CAGInformationList.Len); err != nil {
-				return
+				return err
 			}
 			a.CAGInformationList.SetLen(a.CAGInformationList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.CAGInformationList.Buffer[:a.CAGInformationList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandUERadioCapabilityIDType:
 			a.UERadioCapabilityID = nasType.NewUERadioCapabilityID(ieiN)
 			var lenN0 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN0); err != nil {
-				return
+				return err
 			}
 			a.UERadioCapabilityID.SetLen(uint16(lenN0))
 			if err := binary.Read(buffer, binary.BigEndian, a.UERadioCapabilityID.Buffer[:lenN0]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandUERadioCapabilityIDDeletionIndicationType:
 			a.UERadioCapabilityIDDeletionIndicationIE = nasType.NewUERadioCapabilityIDDeletionIndicationIE(ieiN)
@@ -709,105 +710,105 @@ func (a *ConfigurationUpdateCommand) DecodeConfigurationUpdateCommand(byteArray 
 			a.TruncatedFiveGSTMSIConfiguration = nasType.NewTruncatedFiveGSTMSIConfiguration(ieiN)
 			var lenN1 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN1); err != nil {
-				return
+				return err
 			}
 			a.TruncatedFiveGSTMSIConfiguration.SetLen(uint16(lenN1))
 			if err := binary.Read(buffer, binary.BigEndian, a.TruncatedFiveGSTMSIConfiguration.Buffer[:lenN1]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandExtendedRejectedNSSAIType:
 			a.ExtendedRejectedNSSAI = nasType.NewExtendedRejectedNSSAI(ieiN)
 			var lenN2 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN2); err != nil {
-				return
+				return err
 			}
 			a.ExtendedRejectedNSSAI.SetLen(uint16(lenN2))
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedRejectedNSSAI.Buffer[:lenN2]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandServiceLevelAAContainerType:
 			a.ServiceLevelAAContainer = nasType.NewServiceLevelAAContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ServiceLevelAAContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.ServiceLevelAAContainer.SetLen(a.ServiceLevelAAContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ServiceLevelAAContainer.Buffer[:a.ServiceLevelAAContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandNSSRGInformationType:
 			a.NSSRGInformation = nasType.NewNSSRGInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NSSRGInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.NSSRGInformation.SetLen(a.NSSRGInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.NSSRGInformation.Buffer[:a.NSSRGInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandRegistrationWaitRangeType:
 			a.RegistrationWaitRange = nasType.NewRegistrationWaitRange(ieiN)
 			var lenN3 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN3); err != nil {
-				return
+				return err
 			}
 			a.RegistrationWaitRange.SetLen(uint16(lenN3))
 			if err := binary.Read(buffer, binary.BigEndian, a.RegistrationWaitRange.Buffer[:lenN3]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandDisasterReturnWaitRangeType:
 			a.DisasterReturnWaitRange = nasType.NewRegistrationWaitRange(ieiN)
 			var lenN3a uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN3a); err != nil {
-				return
+				return err
 			}
 			a.DisasterReturnWaitRange.SetLen(uint16(lenN3a))
 			if err := binary.Read(buffer, binary.BigEndian, a.DisasterReturnWaitRange.Buffer[:lenN3a]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandListOfPLMNsForDisasterConditionType:
 			a.ListOfPLMNsForDisasterCondition = nasType.NewListOfPLMNsForDisasterCondition(ieiN)
 			var lenN4 uint8
 			if err := binary.Read(buffer, binary.BigEndian, &lenN4); err != nil {
-				return
+				return err
 			}
 			a.ListOfPLMNsForDisasterCondition.SetLen(uint16(lenN4))
 			if err := binary.Read(buffer, binary.BigEndian, a.ListOfPLMNsForDisasterCondition.Buffer[:lenN4]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandExtendedCAGInformationListType:
 			a.ExtendedCAGInformationList = nasType.NewExtendedCAGInformationList(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedCAGInformationList.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedCAGInformationList.SetLen(a.ExtendedCAGInformationList.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedCAGInformationList.Buffer[:a.ExtendedCAGInformationList.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandNSAGInformationType:
 			a.NSAGInformation = nasType.NewNSAGInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NSAGInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.NSAGInformation.SetLen(a.NSAGInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.NSAGInformation.Buffer[:a.NSAGInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandExtendedLADNInformationType:
 			a.ExtendedLADNInformation = nasType.NewExtendedLADNInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedLADNInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedLADNInformation.SetLen(a.ExtendedLADNInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ExtendedLADNInformation.Buffer[:a.ExtendedLADNInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandRegistrationResult5GSType:
 			a.RegistrationResult5GS = nasType.NewRegistrationResult5GS(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RegistrationResult5GS.Len); err != nil {
-				return
+				return err
 			}
 			a.RegistrationResult5GS.SetLen(a.RegistrationResult5GS.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.RegistrationResult5GS.Octet); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandAdditionalConfigurationIndicationType:
 			a.AdditionalConfigurationIndication = nasType.NewAdditionalConfigurationIndication(ieiN)
@@ -815,11 +816,11 @@ func (a *ConfigurationUpdateCommand) DecodeConfigurationUpdateCommand(byteArray 
 		case ConfigurationUpdateCommandUpdatedPEIPSAssistanceInformationType:
 			a.UpdatedPEIPSAssistanceInformation = nasType.NewUpdatedPEIPSAssistanceInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.UpdatedPEIPSAssistanceInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.UpdatedPEIPSAssistanceInformation.SetLen(a.UpdatedPEIPSAssistanceInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.UpdatedPEIPSAssistanceInformation.Buffer[:a.UpdatedPEIPSAssistanceInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandPriorityIndicatorType:
 			a.PriorityIndicator = nasType.NewPriorityIndicator(ieiN)
@@ -827,76 +828,80 @@ func (a *ConfigurationUpdateCommand) DecodeConfigurationUpdateCommand(byteArray 
 		case ConfigurationUpdateCommandRANTimingSynchronizationType:
 			a.RANTimingSynchronization = nasType.NewRANTimingSynchronization(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.RANTimingSynchronization.Len); err != nil {
-				return
+				return err
 			}
 			a.RANTimingSynchronization.SetLen(a.RANTimingSynchronization.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.RANTimingSynchronization.Buffer[:a.RANTimingSynchronization.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandAlternativeNSSAIType:
 			a.AlternativeNSSAI = nasType.NewAlternativeNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AlternativeNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.AlternativeNSSAI.SetLen(a.AlternativeNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.AlternativeNSSAI.Buffer[:a.AlternativeNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandSNSSAILocationValidityInformationType:
 			a.SNSSAILocationValidityInformation = nasType.NewSNSSAILocationValidityInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.SNSSAILocationValidityInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.SNSSAILocationValidityInformation.SetLen(a.SNSSAILocationValidityInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.SNSSAILocationValidityInformation.Buffer[:a.SNSSAILocationValidityInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandSNSSAITimeValidityInformationType:
 			a.SNSSAITimeValidityInformation = nasType.NewSNSSAITimeValidityInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.SNSSAITimeValidityInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.SNSSAITimeValidityInformation.SetLen(a.SNSSAITimeValidityInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.SNSSAITimeValidityInformation.Buffer[:a.SNSSAITimeValidityInformation.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandDiscontinuousCoverageMaxTimeOffsetType:
 			a.DiscontinuousCoverageMaxTimeOffset = nasType.NewDiscontinuousCoverageMaxTimeOffset(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.DiscontinuousCoverageMaxTimeOffset.Len); err != nil {
-				return
+				return err
 			}
 			a.DiscontinuousCoverageMaxTimeOffset.SetLen(a.DiscontinuousCoverageMaxTimeOffset.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.DiscontinuousCoverageMaxTimeOffset.Octet); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandPartiallyAllowedNSSAIType:
 			a.PartiallyAllowedNSSAI = nasType.NewPartiallyAllowedNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PartiallyAllowedNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.PartiallyAllowedNSSAI.SetLen(a.PartiallyAllowedNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PartiallyAllowedNSSAI.Buffer[:a.PartiallyAllowedNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandPartiallyRejectedNSSAIType:
 			a.PartiallyRejectedNSSAI = nasType.NewPartiallyRejectedNSSAI(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PartiallyRejectedNSSAI.Len); err != nil {
-				return
+				return err
 			}
 			a.PartiallyRejectedNSSAI.SetLen(a.PartiallyRejectedNSSAI.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PartiallyRejectedNSSAI.Buffer[:a.PartiallyRejectedNSSAI.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ConfigurationUpdateCommandFeatureAuthorizationIndicationType:
 			a.FeatureAuthorizationIndication = nasType.NewFeatureAuthorizationIndication(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.FeatureAuthorizationIndication.Len); err != nil {
-				return
+				return err
 			}
 			a.FeatureAuthorizationIndication.SetLen(a.FeatureAuthorizationIndication.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.FeatureAuthorizationIndication.Buffer[:a.FeatureAuthorizationIndication.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

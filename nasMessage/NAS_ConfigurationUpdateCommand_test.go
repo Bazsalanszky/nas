@@ -207,7 +207,9 @@ func TestNasTypeNewConfigurationUpdateCommandMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeConfigurationUpdateCommand(&data)
+		if err := b.DecodeConfigurationUpdateCommand(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Dncode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {
@@ -262,7 +264,9 @@ func TestConfigurationUpdateCommandNewIEsEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeConfigurationUpdateCommand(&data)
+	if err := b.DecodeConfigurationUpdateCommand(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("Decode: ", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -311,7 +315,9 @@ func TestConfigurationUpdateCommandRel1718IEsEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeConfigurationUpdateCommand(&data)
+	if err := b.DecodeConfigurationUpdateCommand(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("Decode: ", b)
 
 	if reflect.DeepEqual(a, b) != true {

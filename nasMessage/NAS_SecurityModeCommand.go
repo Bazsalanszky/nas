@@ -135,35 +135,35 @@ func (a *SecurityModeCommand) EncodeSecurityModeCommand(buffer *bytes.Buffer) {
 	}
 }
 
-func (a *SecurityModeCommand) DecodeSecurityModeCommand(byteArray *[]byte) {
+func (a *SecurityModeCommand) DecodeSecurityModeCommand(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SecurityModeCommandMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SelectedNASSecurityAlgorithms.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndNgksi.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.ReplayedUESecurityCapabilities.Len); err != nil {
-		return
+		return err
 	}
 	a.ReplayedUESecurityCapabilities.SetLen(a.ReplayedUESecurityCapabilities.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.ReplayedUESecurityCapabilities.Buffer); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -177,54 +177,58 @@ func (a *SecurityModeCommand) DecodeSecurityModeCommand(byteArray *[]byte) {
 		case SecurityModeCommandSelectedEPSNASSecurityAlgorithmsType:
 			a.SelectedEPSNASSecurityAlgorithms = nasType.NewSelectedEPSNASSecurityAlgorithms(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.SelectedEPSNASSecurityAlgorithms.Octet); err != nil {
-				return
+				return err
 			}
 		case SecurityModeCommandAdditional5GSecurityInformationType:
 			a.Additional5GSecurityInformation = nasType.NewAdditional5GSecurityInformation(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Additional5GSecurityInformation.Len); err != nil {
-				return
+				return err
 			}
 			a.Additional5GSecurityInformation.SetLen(a.Additional5GSecurityInformation.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.Additional5GSecurityInformation.Octet); err != nil {
-				return
+				return err
 			}
 		case SecurityModeCommandEAPMessageType:
 			a.EAPMessage = nasType.NewEAPMessage(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-				return
+				return err
 			}
 			a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.EAPMessage.Buffer[:a.EAPMessage.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case SecurityModeCommandABBAType:
 			a.ABBA = nasType.NewABBA(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ABBA.Len); err != nil {
-				return
+				return err
 			}
 			a.ABBA.SetLen(a.ABBA.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ABBA.Buffer[:a.ABBA.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case SecurityModeCommandReplayedS1UESecurityCapabilitiesType:
 			a.ReplayedS1UESecurityCapabilities = nasType.NewReplayedS1UESecurityCapabilities(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ReplayedS1UESecurityCapabilities.Len); err != nil {
-				return
+				return err
 			}
 			a.ReplayedS1UESecurityCapabilities.SetLen(a.ReplayedS1UESecurityCapabilities.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.ReplayedS1UESecurityCapabilities.Buffer[:a.ReplayedS1UESecurityCapabilities.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case SecurityModeCommandMasterSessionKeyType:
 			a.MasterSessionKey = nasType.NewMasterSessionKey(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.MasterSessionKey.Len); err != nil {
-				return
+				return err
 			}
 			a.MasterSessionKey.SetLen(a.MasterSessionKey.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.MasterSessionKey.Buffer[:a.MasterSessionKey.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

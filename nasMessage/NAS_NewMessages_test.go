@@ -54,7 +54,9 @@ func TestNetworkSliceSpecificAuthenticationCommandEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeNetworkSliceSpecificAuthenticationCommand(&data)
+	if err := b.DecodeNetworkSliceSpecificAuthenticationCommand(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -103,7 +105,9 @@ func TestNetworkSliceSpecificAuthenticationCompleteEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeNetworkSliceSpecificAuthenticationComplete(&data)
+	if err := b.DecodeNetworkSliceSpecificAuthenticationComplete(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -152,7 +156,9 @@ func TestNetworkSliceSpecificAuthenticationResultEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeNetworkSliceSpecificAuthenticationResult(&data)
+	if err := b.DecodeNetworkSliceSpecificAuthenticationResult(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -223,7 +229,9 @@ func TestRelayKeyRequestEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRelayKeyRequest(&data)
+	if err := b.DecodeRelayKeyRequest(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -259,7 +267,9 @@ func TestRelayKeyAcceptEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRelayKeyAccept(&data)
+	if err := b.DecodeRelayKeyAccept(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -293,7 +303,9 @@ func TestRelayKeyRejectEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRelayKeyReject(&data)
+	if err := b.DecodeRelayKeyReject(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -329,7 +341,9 @@ func TestRelayAuthenticationRequestEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRelayAuthenticationRequest(&data)
+	if err := b.DecodeRelayAuthenticationRequest(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -365,7 +379,9 @@ func TestRelayAuthenticationResponseEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeRelayAuthenticationResponse(&data)
+	if err := b.DecodeRelayAuthenticationResponse(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {
@@ -415,7 +431,9 @@ func TestControlPlaneServiceRequestEncodeDecode(t *testing.T) {
 	if _, err := buff.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	b.DecodeControlPlaneServiceRequest(&data)
+	if err := b.DecodeControlPlaneServiceRequest(&data); err != nil {
+		t.Fatal(err)
+	}
 	logger.NasMsgLog.Debugln("decode:", b)
 
 	if reflect.DeepEqual(a, b) != true {

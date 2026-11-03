@@ -98,7 +98,9 @@ func TestNasTypeNewPDUSessionReleaseCommandMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodePDUSessionReleaseCommand(&data)
+		if err := b.DecodePDUSessionReleaseCommand(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 		// logger.NasMsgLog.Debugln(a.Cause5GSM)
 		// logger.NasMsgLog.Debugln(b.Cause5GSM)

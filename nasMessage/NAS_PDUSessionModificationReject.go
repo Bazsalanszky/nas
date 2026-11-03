@@ -98,28 +98,28 @@ func (a *PDUSessionModificationReject) EncodePDUSessionModificationReject(buffer
 	}
 }
 
-func (a *PDUSessionModificationReject) DecodePDUSessionModificationReject(byteArray *[]byte) {
+func (a *PDUSessionModificationReject) DecodePDUSessionModificationReject(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionID.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PTI.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.PDUSESSIONMODIFICATIONREJECTMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.Cause5GSM.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -130,40 +130,44 @@ func (a *PDUSessionModificationReject) DecodePDUSessionModificationReject(byteAr
 		case PDUSessionModificationRejectBackoffTimerValueType:
 			a.BackoffTimerValue = nasType.NewBackoffTimerValue(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.BackoffTimerValue.Len); err != nil {
-				return
+				return err
 			}
 			a.BackoffTimerValue.SetLen(a.BackoffTimerValue.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.BackoffTimerValue.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRejectExtendedProtocolConfigurationOptionsType:
 			a.ExtendedProtocolConfigurationOptions = nasType.NewExtendedProtocolConfigurationOptions(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolConfigurationOptions.Len); err != nil {
-				return
+				return err
 			}
 			a.ExtendedProtocolConfigurationOptions.SetLen(a.ExtendedProtocolConfigurationOptions.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.Buffer[:a.ExtendedProtocolConfigurationOptions.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRejectFivegsmcongestionreattemptindicatorType:
 			a.Fivegsmcongestionreattemptindicator = nasType.NewFivegsmcongestionreattemptindicator(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.Fivegsmcongestionreattemptindicator.Len); err != nil {
-				return
+				return err
 			}
 			a.Fivegsmcongestionreattemptindicator.SetLen(a.Fivegsmcongestionreattemptindicator.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.Fivegsmcongestionreattemptindicator.Octet); err != nil {
-				return
+				return err
 			}
 		case PDUSessionModificationRejectReAttemptIndicatorType:
 			a.ReAttemptIndicator = nasType.NewReAttemptIndicator(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.ReAttemptIndicator.Len); err != nil {
-				return
+				return err
 			}
 			a.ReAttemptIndicator.SetLen(a.ReAttemptIndicator.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, &a.ReAttemptIndicator.Octet); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

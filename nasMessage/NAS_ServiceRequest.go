@@ -101,32 +101,32 @@ func (a *ServiceRequest) EncodeServiceRequest(buffer *bytes.Buffer) {
 	}
 }
 
-func (a *ServiceRequest) DecodeServiceRequest(byteArray *[]byte) {
+func (a *ServiceRequest) DecodeServiceRequest(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.ServiceRequestMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.ServiceTypeAndNgksi.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.TMSI5GS.Len); err != nil {
-		return
+		return err
 	}
 	a.TMSI5GS.SetLen(a.TMSI5GS.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.TMSI5GS.Octet); err != nil {
-		return
+		return err
 	}
 	for buffer.Len() > 0 {
 		var ieiN uint8
 		var tmpIeiN uint8
 		if err := binary.Read(buffer, binary.BigEndian, &ieiN); err != nil {
-			return
+			return err
 		}
 		if ieiN >= 0x80 {
 			tmpIeiN = (ieiN & 0xf0) >> 4
@@ -137,40 +137,44 @@ func (a *ServiceRequest) DecodeServiceRequest(byteArray *[]byte) {
 		case ServiceRequestUplinkDataStatusType:
 			a.UplinkDataStatus = nasType.NewUplinkDataStatus(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.UplinkDataStatus.Len); err != nil {
-				return
+				return err
 			}
 			a.UplinkDataStatus.SetLen(a.UplinkDataStatus.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.UplinkDataStatus.Buffer[:a.UplinkDataStatus.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ServiceRequestPDUSessionStatusType:
 			a.PDUSessionStatus = nasType.NewPDUSessionStatus(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.PDUSessionStatus.Len); err != nil {
-				return
+				return err
 			}
 			a.PDUSessionStatus.SetLen(a.PDUSessionStatus.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.PDUSessionStatus.Buffer[:a.PDUSessionStatus.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ServiceRequestAllowedPDUSessionStatusType:
 			a.AllowedPDUSessionStatus = nasType.NewAllowedPDUSessionStatus(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.AllowedPDUSessionStatus.Len); err != nil {
-				return
+				return err
 			}
 			a.AllowedPDUSessionStatus.SetLen(a.AllowedPDUSessionStatus.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.AllowedPDUSessionStatus.Buffer[:a.AllowedPDUSessionStatus.GetLen()]); err != nil {
-				return
+				return err
 			}
 		case ServiceRequestNASMessageContainerType:
 			a.NASMessageContainer = nasType.NewNASMessageContainer(ieiN)
 			if err := binary.Read(buffer, binary.BigEndian, &a.NASMessageContainer.Len); err != nil {
-				return
+				return err
 			}
 			a.NASMessageContainer.SetLen(a.NASMessageContainer.GetLen())
 			if err := binary.Read(buffer, binary.BigEndian, a.NASMessageContainer.Buffer[:a.NASMessageContainer.GetLen()]); err != nil {
-				return
+				return err
 			}
 		default:
+			if err := skipUnknownIE(buffer, ieiN); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

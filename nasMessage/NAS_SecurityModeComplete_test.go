@@ -7,6 +7,7 @@ package nasMessage_test
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -83,7 +84,9 @@ func TestNasTypeNewSecurityModeCompleteMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeSecurityModeComplete(&data)
+		if err := b.DecodeSecurityModeComplete(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {
@@ -103,7 +106,9 @@ func TestNasTypeSecurityModeCompleteOverlengthIMEISV(t *testing.T) {
 		0x71, 0x01, 0x00, // NAS message container, len=1
 	}
 	b := nasMessage.NewSecurityModeComplete(0)
-	b.DecodeSecurityModeComplete(&data)
+	if err := b.DecodeSecurityModeComplete(&data); !errors.Is(err, nasMessage.ErrMalformedIE) {
+		t.Fatalf("error = %v, want ErrMalformedIE", err)
+	}
 
 	if b.IMEISV != nil {
 		t.Errorf("expected malformed IMEISV to be discarded, got %+v", b.IMEISV)

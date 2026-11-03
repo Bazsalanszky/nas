@@ -6,6 +6,7 @@ package nasMessage
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/omec-project/nas/v2/nasType"
 )
@@ -48,32 +49,33 @@ func (a *NetworkSliceSpecificAuthenticationCommand) EncodeNetworkSliceSpecificAu
 	}
 }
 
-func (a *NetworkSliceSpecificAuthenticationCommand) DecodeNetworkSliceSpecificAuthenticationCommand(byteArray *[]byte) {
+func (a *NetworkSliceSpecificAuthenticationCommand) DecodeNetworkSliceSpecificAuthenticationCommand(byteArray *[]byte) error {
 	buffer := bytes.NewBuffer(*byteArray)
 	if err := binary.Read(buffer, binary.BigEndian, &a.ExtendedProtocolDiscriminator.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SpareHalfOctetAndSecurityHeaderType.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.NETWORKSLICESPECIFICAUTHENTICATIONCOMMANDMessageIdentity.Octet); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.SNSSAI.Len); err != nil {
-		return
+		return err
 	}
 	if a.SNSSAI.GetLen() > uint8(len(a.SNSSAI.Octet)) {
 		a.SNSSAI.SetLen(0) // SNSSAI is mandatory (not a pointer) - reset it so a later Encode cannot re-panic on it
-		return
+		return fmt.Errorf("%w: SNSSAI length exceeds maximum", ErrMalformedIE)
 	}
 	if err := binary.Read(buffer, binary.BigEndian, a.SNSSAI.Octet[:a.SNSSAI.GetLen()]); err != nil {
-		return
+		return err
 	}
 	if err := binary.Read(buffer, binary.BigEndian, &a.EAPMessage.Len); err != nil {
-		return
+		return err
 	}
 	a.EAPMessage.SetLen(a.EAPMessage.GetLen())
 	if err := binary.Read(buffer, binary.BigEndian, &a.Buffer); err != nil {
-		return
+		return err
 	}
+	return nil
 }

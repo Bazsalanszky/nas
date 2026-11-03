@@ -78,7 +78,9 @@ func TestNasTypeNewDeregistrationRequestUEOriginatingDeregistrationMessage(t *te
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeDeregistrationRequestUEOriginatingDeregistration(&data)
+		if err := b.DecodeDeregistrationRequestUEOriginatingDeregistration(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {

@@ -75,7 +75,9 @@ func TestNasTypeNewSecurityProtected5GSNASMessageMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.NasMsgLog.Debugln(data)
-		b.DecodeSecurityProtected5GSNASMessage(&data)
+		if err := b.DecodeSecurityProtected5GSNASMessage(&data); err != nil {
+			t.Fatal(err)
+		}
 		logger.NasMsgLog.Debugln("Decode: ", b)
 
 		if reflect.DeepEqual(a, b) != true {
