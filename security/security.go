@@ -82,7 +82,8 @@ func NASMacCalculate(AlgoID uint8, KnasInt [16]uint8, Count uint32,
 	switch AlgoID {
 	case AlgIntegrity128NIA0:
 		logger.SecurityLog.Warnln("integrity NIA0 is emergency")
-		return nil, nil
+		// TS 33.501 Annex D.3.1: NIA0 generates a 32-bit MAC of all zeroes
+		return make([]byte, 4), nil
 	case AlgIntegrity128NIA1:
 		logger.SecurityLog.Debugln("use NIA1")
 		return NIA1(KnasInt, Count, Bearer, uint32(Direction), msg, uint64(len(msg))*8)
@@ -103,12 +104,12 @@ func NEA1(ck [16]byte, countC, bearer, direction uint32, ibs []byte, length uint
 		k[i] = binary.BigEndian.Uint32(ck[4*(3-i) : 4*(3-i+1)])
 	}
 	iv := [4]uint32{(bearer << 27) | (direction << 26), countC, (bearer << 27) | (direction << 26), countC}
-	snow3g.InitSnow3g(k, iv)
+	st := snow3g.InitSnow3g(k, iv)
 
 	l := (length + 31) / 32
 	r := length % 32
 	ks := make([]uint32, l)
-	snow3g.GenerateKeystream(int(l), ks)
+	st.GenerateKeystream(int(l), ks)
 	// Clear keystream bits which exceed length.
 	// Guard: when r==0 the length is an exact multiple of 32 bits, so no
 	// masking is needed - without this guard the shift evaluates to zero,
@@ -223,6 +224,12 @@ func mul(V, P, c uint64) uint64 {
 func NIA1(ik [16]byte, countI uint32, bearer byte, direction uint32, msg []byte, length uint64) (
 	mac []byte, err error,
 ) {
+	if length == 0 {
+		return nil, fmt.Errorf("length cannot be zero")
+	}
+	if uint64(len(msg))*8 < length {
+		return nil, fmt.Errorf("message is shorter than length[%d] bits", length)
+	}
 	fresh := uint32(bearer) << 27
 	var k [4]uint32
 	for i := range 4 {
@@ -231,8 +238,8 @@ func NIA1(ik [16]byte, countI uint32, bearer byte, direction uint32, msg []byte,
 	iv := [4]uint32{fresh ^ (direction << 15), countI ^ (direction << 31), fresh, countI}
 	D := ((length + 63) / 64) + 1
 	z := make([]uint32, 5)
-	snow3g.InitSnow3g(k, iv)
-	snow3g.GenerateKeystream(5, z)
+	st := snow3g.InitSnow3g(k, iv)
+	st.GenerateKeystream(5, z)
 
 	P := (uint64(z[0]) << 32) | uint64(z[1])
 	Q := (uint64(z[2]) << 32) | uint64(z[3])

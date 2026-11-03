@@ -17,8 +17,8 @@ func Test1(t *testing.T) {
 	z := [2]uint32{0xabee9704, 0x7ac31373}
 
 	ks := make([]uint32, 2)
-	snow3g.InitSnow3g(k, iv)
-	snow3g.GenerateKeystream(2, ks)
+	st := snow3g.InitSnow3g(k, iv)
+	st.GenerateKeystream(2, ks)
 	for i, k := range ks {
 		if k != z[i] {
 			t.Errorf("%#x != %#x\n", k, z[i])
@@ -32,8 +32,8 @@ func Test2(t *testing.T) {
 	z := [2]uint32{0xeff8a342, 0xf751480f}
 
 	ks := make([]uint32, 2)
-	snow3g.InitSnow3g(k, iv)
-	snow3g.GenerateKeystream(2, ks)
+	st := snow3g.InitSnow3g(k, iv)
+	st.GenerateKeystream(2, ks)
 	for i, k := range ks {
 		if k != z[i] {
 			t.Errorf("%#x != %#x\n", k, z[i])
@@ -47,8 +47,8 @@ func Test3(t *testing.T) {
 	z := [2]uint32{0xa8c874a9, 0x7ae7c4f8}
 
 	ks := make([]uint32, 2)
-	snow3g.InitSnow3g(k, iv)
-	snow3g.GenerateKeystream(2, ks)
+	st := snow3g.InitSnow3g(k, iv)
+	st.GenerateKeystream(2, ks)
 	for i, k := range ks {
 		if k != z[i] {
 			t.Errorf("%#x != %#x\n", k, z[i])
@@ -62,9 +62,9 @@ func Test4(t *testing.T) {
 	z := [3]uint32{0xd712c05c, 0xa937c2a6, 0xeb7eaae3}
 
 	ks := make([]uint32, 2500)
-	snow3g.InitSnow3g(k, iv)
-	snow3g.GenerateKeystream(2500, ks)
-	for i := 0; i < 3; i++ {
+	st := snow3g.InitSnow3g(k, iv)
+	st.GenerateKeystream(2500, ks)
+	for i := range 3 {
 		if ks[i] != z[i] {
 			t.Errorf("%#x != %#x\n", ks[i], z[i])
 		}

@@ -51,10 +51,12 @@ type Fsm struct {
 	r [3]uint32
 }
 
-var (
+// State holds the SNOW 3G LFSR and FSM. Each keystream computation must use
+// its own State so that concurrent callers do not share registers.
+type State struct {
 	lfsr Lfsr
 	fsm  Fsm
-)
+}
 
 func mulx(V, c byte) byte {
 	if V&0x80 != 0 {
@@ -114,25 +116,29 @@ func divAlpha(c byte) uint32 {
 	return (r0 << 24) | (r1 << 16) | (r2 << 8) | r3
 }
 
-func lfsrInitialisationMode(F uint32) {
+func (st *State) lfsrInitialisationMode(F uint32) {
+	lfsr := &st.lfsr
 	v := (lfsr.s[0] << 8) ^ mulAlpha(byte(lfsr.s[0]>>24)&0xff) ^ lfsr.s[2] ^ (lfsr.s[11] >> 8) ^
 		divAlpha(byte(lfsr.s[11]&0xff)) ^ F
-	for i := 0; i < 15; i++ {
+	for i := range 15 {
 		lfsr.s[i] = lfsr.s[i+1]
 	}
 	lfsr.s[15] = v
 }
 
-func lfsrKeystreamMode() {
+func (st *State) lfsrKeystreamMode() {
+	lfsr := &st.lfsr
 	v := (lfsr.s[0] << 8) ^ mulAlpha(byte(lfsr.s[0]>>24)&0xff) ^ lfsr.s[2] ^ (lfsr.s[11] >> 8) ^
 		divAlpha(byte(lfsr.s[11]&0xff))
-	for i := 0; i < 15; i++ {
+	for i := range 15 {
 		lfsr.s[i] = lfsr.s[i+1]
 	}
 	lfsr.s[15] = v
 }
 
-func clockFsm(s15, s5 uint32) uint32 {
+func (st *State) clockFsm() uint32 {
+	lfsr, fsm := &st.lfsr, &st.fsm
+	s15, s5 := lfsr.s[15], lfsr.s[5]
 	F := (s15 + fsm.r[0]) ^ fsm.r[1]
 	r := fsm.r[1] + (fsm.r[2] ^ s5)
 	fsm.r[2] = s2(fsm.r[1])
@@ -141,7 +147,10 @@ func clockFsm(s15, s5 uint32) uint32 {
 	return F
 }
 
-func InitSnow3g(k, iv [4]uint32) {
+// InitSnow3g returns a freshly initialised State for the given key and IV.
+func InitSnow3g(k, iv [4]uint32) *State {
+	st := &State{}
+	lfsr, fsm := &st.lfsr, &st.fsm
 	lfsr.s[0] = k[0] ^ 0xffffffff
 	lfsr.s[1] = k[1] ^ 0xffffffff
 	lfsr.s[2] = k[2] ^ 0xffffffff
@@ -159,23 +168,25 @@ func InitSnow3g(k, iv [4]uint32) {
 	lfsr.s[14] = k[2]
 	lfsr.s[15] = k[3] ^ iv[0]
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		fsm.r[i] = 0
 	}
 
-	for i := 0; i < 32; i++ {
-		F := clockFsm(lfsr.s[15], lfsr.s[5])
-		lfsrInitialisationMode(F)
+	for range 32 {
+		F := st.clockFsm()
+		st.lfsrInitialisationMode(F)
 	}
+	return st
 }
 
-func GenerateKeystream(n int, ks []uint32) {
-	clockFsm(lfsr.s[15], lfsr.s[5])
-	lfsrKeystreamMode()
+// GenerateKeystream writes n keystream words into ks.
+func (st *State) GenerateKeystream(n int, ks []uint32) {
+	st.clockFsm()
+	st.lfsrKeystreamMode()
 
-	for i := 0; i < n; i++ {
-		F := clockFsm(lfsr.s[15], lfsr.s[5])
-		ks[i] = F ^ lfsr.s[0]
-		lfsrKeystreamMode()
+	for i := range n {
+		F := st.clockFsm()
+		ks[i] = F ^ st.lfsr.s[0]
+		st.lfsrKeystreamMode()
 	}
 }
