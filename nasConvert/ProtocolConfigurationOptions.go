@@ -211,24 +211,46 @@ func (protocolConfigurationOptions *ProtocolConfigurationOptions) AddPCSCFIPv4Ad
 	return
 }
 
+// AddDNSServerIPv6Address adds a DNS Server IPv6 Address container (0x0003,
+// TS 24.008 clause 10.5.6.3). dnsIP must be an IPv6 address; IPv4 addresses,
+// including the IPv4-mapped form that net.ParseIP returns for dotted-quad
+// input, are rejected.
 func (protocolConfigurationOptions *ProtocolConfigurationOptions) AddDNSServerIPv6Address(dnsIP net.IP) (err error) {
-	if dnsIP.To16() == nil {
+	if !isIPv6(dnsIP) {
 		return fmt.Errorf("the DNS IP should be IPv6 in AddDNSServerIPv6Address")
 	}
 
-	if len(dnsIP) != net.IPv6len {
-		return fmt.Errorf("the length of DNS IPv6 is wrong")
+	protocolConfigurationOptions.addIPv6Container(nasMessage.DNSServerIPv6AddressDL, dnsIP)
+	return
+}
+
+// AddPCSCFIPv6Address adds a P-CSCF IPv6 Address container (0x0001,
+// TS 24.008 clause 10.5.6.3). pcscfIP must be an IPv6 address; IPv4 and
+// IPv4-mapped addresses are rejected.
+func (protocolConfigurationOptions *ProtocolConfigurationOptions) AddPCSCFIPv6Address(pcscfIP net.IP) (err error) {
+	if !isIPv6(pcscfIP) {
+		return fmt.Errorf("the P-CSCF IP should be IPv6")
 	}
 
+	protocolConfigurationOptions.addIPv6Container(nasMessage.PCSCFIPv6AddressDL, pcscfIP)
+	return
+}
+
+// isIPv6 reports whether ip is a 16-byte IPv6 address that is not an
+// IPv4-mapped IPv4 address.
+func isIPv6(ip net.IP) bool {
+	return len(ip) == net.IPv6len && ip.To4() == nil
+}
+
+func (protocolConfigurationOptions *ProtocolConfigurationOptions) addIPv6Container(id uint16, ip net.IP) {
 	protocolOrContainerUnit := NewProtocolOrContainerUnit()
 
-	protocolOrContainerUnit.ProtocolOrContainerID = nasMessage.DNSServerIPv6AddressDL
+	protocolOrContainerUnit.ProtocolOrContainerID = id
 	protocolOrContainerUnit.LengthOfContents = uint8(net.IPv6len)
-	protocolOrContainerUnit.Contents = append(protocolOrContainerUnit.Contents, dnsIP.To16()...)
+	protocolOrContainerUnit.Contents = append(protocolOrContainerUnit.Contents, ip...)
 
 	protocolConfigurationOptions.ProtocolOrContainerList = append(protocolConfigurationOptions.ProtocolOrContainerList,
 		protocolOrContainerUnit)
-	return
 }
 
 func (protocolConfigurationOptions *ProtocolConfigurationOptions) AddIPv4LinkMTU(mtu uint16) (err error) {
