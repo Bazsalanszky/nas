@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"net"
 
+	"github.com/omec-project/nas/v2/logger"
 	"github.com/omec-project/nas/v2/nasType"
 )
 
@@ -24,6 +25,12 @@ type DLNASTransport struct {
 	*nasType.Cause5GMM
 	*nasType.BackoffTimerValue
 	*nasType.LowerBoundTimerValue
+	// Ipaddr is set by DecodeDLNASTransport, on a best-effort basis, to the
+	// UE IPv4 address of a PDU Session Establishment Accept carried in the
+	// payload container: the PDU address of an IPv4 session, or the IPv4 part
+	// of an IPv4v6 session's PDU address. It is empty for every other message
+	// and for IPv6 sessions, whose PDU address holds only an interface
+	// identifier.
 	Ipaddr string
 }
 
@@ -131,74 +138,8 @@ func (a *DLNASTransport) DecodeDLNASTransport(byteArray *[]byte) error {
 	if err := binary.Read(buffer, binary.BigEndian, &a.PayloadContainer.Buffer); err != nil {
 		return err
 	}
-	if a.SpareHalfOctetAndPayloadContainerType.Octet == uint8(1) {
-		// best-effort extraction of the UE IP address; malformed/short ESM content just stops this scan
-		func() {
-			esmMsg := bytes.NewBuffer(a.PayloadContainer.Buffer)
-			var pd uint8
-			if err := binary.Read(esmMsg, binary.BigEndian, &pd); err != nil {
-				return
-			}
-			if err := binary.Read(esmMsg, binary.BigEndian, &pd); err != nil {
-				return
-			}
-			if err := binary.Read(esmMsg, binary.BigEndian, &pd); err != nil {
-				return
-			}
-			if err := binary.Read(esmMsg, binary.BigEndian, &pd); err != nil {
-				return
-			}
-			if err := binary.Read(esmMsg, binary.BigEndian, &pd); err != nil {
-				return
-			}
-			var msgLen uint16
-			if err := binary.Read(esmMsg, binary.BigEndian, &msgLen); err != nil {
-				return
-			}
-			var qos [9]uint8
-			if err := binary.Read(esmMsg, binary.BigEndian, &qos); err != nil {
-				return
-			}
-			var ambr_len uint8
-			if err := binary.Read(esmMsg, binary.BigEndian, &ambr_len); err != nil {
-				return
-			}
-			var ambr [6]uint8
-			if err := binary.Read(esmMsg, binary.BigEndian, &ambr); err != nil {
-				return
-			}
-		forLoop:
-			for esmMsg.Len() > 0 {
-				var ieiN uint8
-				if err := binary.Read(esmMsg, binary.BigEndian, &ieiN); err != nil {
-					return
-				}
-				switch ieiN {
-				case 89:
-					var cause uint8
-					if err := binary.Read(esmMsg, binary.BigEndian, &cause); err != nil {
-						return
-					}
-				case 41:
-					var iplen uint8
-					if err := binary.Read(esmMsg, binary.BigEndian, &iplen); err != nil {
-						return
-					}
-					var iptype uint8
-					if err := binary.Read(esmMsg, binary.BigEndian, &iptype); err != nil {
-						return
-					}
-					var ipaddr [4]uint8
-					if err := binary.Read(esmMsg, binary.BigEndian, &ipaddr); err != nil {
-						return
-					}
-					ip := net.IPv4(ipaddr[0], ipaddr[1], ipaddr[2], ipaddr[3])
-					a.Ipaddr = ip.String()
-					break forLoop // we just need ip address nothing more
-				default:
-				}
-			}
-		}()
+	if a.SpareHalfOctetAndPayloadContainerType.Octet == PayloadContainerTypeN1SMInfo {
+		a.Ipaddr = ueIPv4AddressFromN1SM(a.PayloadContainer.Buffer)
 	}
 
 	for buffer.Len() > 0 {
@@ -257,4 +198,50 @@ func (a *DLNASTransport) DecodeDLNASTransport(byteArray *[]byte) error {
 		}
 	}
 	return nil
+}
+
+// msgTypePDUSessionEstablishmentAccept is the 5GSM message type of a PDU
+// Session Establishment Accept (TS 24.501 Table 9.7.1). The nas package
+// defines it as MsgTypePDUSessionEstablishmentAccept, but nasMessage cannot
+// import nas.
+const msgTypePDUSessionEstablishmentAccept uint8 = 0xc2
+
+// ueIPv4AddressFromN1SM returns the UE IPv4 address assigned by a PDU Session
+// Establishment Accept, or "" if n1sm is not one, carries no PDU address, or
+// the session has no IPv4 address. The PDU address information is laid out
+// by PDU session type (TS 24.501 clause 9.11.4.10): IPv4 address (4 octets),
+// IPv6 interface identifier (8 octets), or interface identifier followed by
+// the IPv4 address (12 octets).
+func ueIPv4AddressFromN1SM(n1sm []byte) string {
+	// Extended protocol discriminator, PDU session ID, PTI, message type.
+	const msgTypeOffset = 3
+	if len(n1sm) <= msgTypeOffset || n1sm[msgTypeOffset] != msgTypePDUSessionEstablishmentAccept {
+		return ""
+	}
+	accept := NewPDUSessionEstablishmentAccept(0)
+	if err := accept.DecodePDUSessionEstablishmentAccept(&n1sm); err != nil {
+		// A PDU address decoded before the error (a later IE is truncated
+		// or malformed) is still used.
+		logger.NasMsgLog.Debugf("decode PDU Session Establishment Accept in DL NAS Transport: %v", err)
+	}
+	pduAddress := accept.PDUAddress
+	if pduAddress == nil {
+		return ""
+	}
+	info := pduAddress.GetPDUAddressInformation()
+	var ip net.IP
+	switch pduAddress.GetPDUSessionTypeValue() {
+	case PDUSessionTypeIPv4:
+		if pduAddress.GetLen() >= 1+net.IPv4len {
+			ip = net.IP(info[0:net.IPv4len])
+		}
+	case PDUSessionTypeIPv4IPv6:
+		if pduAddress.GetLen() >= 1+8+net.IPv4len {
+			ip = net.IP(info[8 : 8+net.IPv4len])
+		}
+	}
+	if ip == nil {
+		return ""
+	}
+	return ip.String()
 }
